@@ -1,0 +1,109 @@
+{
+  "name": "İngilizce A1",
+  "description": "Başlangıç seviyesi temel İngilizce kelimeler",
+  "language": "en",
+  "targetLanguage": "tr",
+  "level": "A1",
+  "words": [
+    {
+      "word": "hello",
+      "meaning": "merhaba",
+      "example": "Hello, how are you?"
+    },
+    {
+      "word": "goodbye",
+      "meaning": "hoşça kal",
+      "example": "Goodbye, see you tomorrow."
+    },
+    {
+      "word": "please",
+      "meaning": "lütfen",
+      "example": "Please open the door."
+    },
+    {
+      "word": "thank you",
+      "meaning": "teşekkür ederim",
+      "example": "Thank you for your help."
+    },
+    {
+      "word": "yes",
+      "meaning": "evet",
+      "example": "Yes, I understand."
+    },
+    {
+      "word": "no",
+      "meaning": "hayır",
+      "example": "No, I don't know."
+    },
+    {
+      "word": "water",
+      "meaning": "su",
+      "example": "I drink water."
+    },
+    {
+      "word": "food",
+      "meaning": "yiyecek",
+      "example": "This food is good."
+    },
+    {
+      "word": "book",
+      "meaning": "kitap",
+      "example": "I read a book."
+    },
+    {
+      "word": "school",
+      "meaning": "okul",
+      "example": "She goes to school."
+    },
+    {
+      "word": "teacher",
+      "meaning": "öğretmen",
+      "example": "The teacher is kind."
+    },
+    {
+      "word": "student",
+      "meaning": "öğrenci",
+      "example": "He is a student."
+    },
+    {
+      "word": "house",
+      "meaning": "ev",
+      "example": "This is my house."
+    },
+    {
+      "word": "room",
+      "meaning": "oda",
+      "example": "My room is small."
+    },
+    {
+      "word": "family",
+      "meaning": "aile",
+      "example": "I love my family."
+    },
+    {
+      "word": "mother",
+      "meaning": "anne",
+      "example": "My mother is at home."
+    },
+    {
+      "word": "father",
+      "meaning": "baba",
+      "example": "My father works."
+    },
+    {
+      "word": "friend",
+      "meaning": "arkadaş",
+      "example": "She is my friend."
+    },
+    {
+      "word": "day",
+      "meaning": "gün",
+      "example": "Today is a good day."
+    },
+    {
+      "word": "night",
+      "meaning": "gece",
+      "example": "Good night."
+    }
+  ]
+}
