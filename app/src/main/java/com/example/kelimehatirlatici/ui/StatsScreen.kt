@@ -1,0 +1,71 @@
+package com.example.kelimehatirlatici.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.kelimehatirlatici.data.StudyStats
+
+@Composable
+fun StatsScreen(
+    stats: List<StudyStats>,
+    onBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("İstatistikler")
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize()
+        ) {
+            if (stats.isEmpty()) {
+                Text("Henüz istatistik yok.")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(stats) { item ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = item.date,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text("Öğrenilen: ${item.learnedCount}")
+                                Text("Quiz doğru: ${item.quizCorrect}")
+                                Text("Quiz yanlış: ${item.quizWrong}")
+                                Text("Çalışma süresi: ${item.studyTimeMinute} dk")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Geri")
+            }
+        }
+    }
+}
