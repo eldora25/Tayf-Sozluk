@@ -30,6 +30,10 @@ fun QuizScreen(
     onAnswerWrong: (QuizQuestion) -> Unit,
     onMarkLearned: (QuizQuestion) -> Unit,
     onSpeak: (String) -> Unit,
+    onPlayCorrectSound: () -> Unit,
+    onPlayWrongSound: () -> Unit,
+    isSoundMuted: Boolean,
+    onToggleMute: () -> Unit,
     onBack: () -> Unit
 ) {
     val question = session.currentQuestion
@@ -144,15 +148,18 @@ fun QuizScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 🔊 Seslendirme aç/kapat butonu
+                    // 🔊 Seslendirme + ses efekti aç/kapat butonu
                     IconButton(
-                        onClick = { autoSpeakEnabled = !autoSpeakEnabled },
+                        onClick = {
+                            onToggleMute()
+                            autoSpeakEnabled = !autoSpeakEnabled
+                        },
                         modifier = Modifier.size(44.dp)
                     ) {
                         Icon(
-                            imageVector = if (autoSpeakEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            contentDescription = if (autoSpeakEnabled) "Sesi kapat" else "Sesi aç",
-                            tint = if (autoSpeakEnabled) Color(0xFF4CAF50) else Color.Gray,
+                            imageVector = if (!isSoundMuted) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                            contentDescription = if (!isSoundMuted) "Sesi kapat" else "Sesi aç",
+                            tint = if (!isSoundMuted) Color(0xFF4CAF50) else Color.Gray,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -252,10 +259,12 @@ fun QuizScreen(
                                 if (isCorrect) {
                                     session.correctCount++
                                     onAnswerCorrect(question)
+                                    onPlayCorrectSound()
                                     correctAnswerSelected = true
                                 } else {
                                     session.wrongCount++
                                     onAnswerWrong(question)
+                                    onPlayWrongSound()
                                 }
                             }
                         },
@@ -277,7 +286,6 @@ fun QuizScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Sol: Radio + Metin
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
@@ -308,7 +316,6 @@ fun QuizScreen(
                                 )
                             }
 
-                            // Sağ: Durum simgesi
                             if (isSelectedCorrect) {
                                 Icon(Icons.Default.Check, contentDescription = "Doğru", tint = Color(0xFF4CAF50), modifier = Modifier.size(26.dp))
                             } else if (isSelectedWrong) {
