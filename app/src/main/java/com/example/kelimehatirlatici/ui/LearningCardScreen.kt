@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.kelimehatirlatici.BuildConfig   // ★ YENİ İMPORT
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
@@ -40,7 +41,6 @@ fun GifImage(
     contentDescription: String? = null
 ) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        // Android 9+ native AnimatedImageDrawable
         AndroidView(
             factory = { context ->
                 ImageView(context).apply {
@@ -57,7 +57,6 @@ fun GifImage(
             modifier = modifier
         )
     } else {
-        // Eski cihazlar için Coil kullan
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(gifRes)
@@ -197,7 +196,6 @@ fun LearningCardScreen(
                     )
                 ) {
                     if (showFront) {
-                        // Ön yüz
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -215,7 +213,6 @@ fun LearningCardScreen(
                             }
                         }
                     } else {
-                        // Arka yüz
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -242,13 +239,12 @@ fun LearningCardScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Biliyorum / Tekrar butonları
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Button(onClick = { onKnownClick(); isFlipped = false }) { Text("Biliyorum") }
                     OutlinedButton(onClick = { onWrongClick(); isFlipped = false }) { Text("Tekrar") }
                 }
 
-                // ── GIF ANİMASYONU (native AnimatedImageDrawable + Coil yedek) ──
+                // ── GIF ANİMASYONU ──
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
@@ -266,9 +262,9 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ══════════ VERSİYON NUMARASI ══════════
+            // ══════════ VERSİYON NUMARASI (DİNAMİK) ══════════
             Text(
-                text = "v:01.32        By: Tayfun Yamak ©",
+                text = "v:${BuildConfig.VERSION_NAME}        By: Tayfun Yamak ©",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1976D2),
