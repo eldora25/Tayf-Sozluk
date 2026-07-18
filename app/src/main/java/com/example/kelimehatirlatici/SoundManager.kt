@@ -25,8 +25,24 @@ class SoundManager(context: Context) {
 
         soundPool?.setOnLoadCompleteListener { _, _, _ -> loaded = true }
 
-        correctSoundId = soundPool?.load(context, generateBeepUri(context, 800.0, 0.15, 0.8f), 1) ?: 0
-        wrongSoundId = soundPool?.load(context, generateBeepUri(context, 300.0, 0.25, 0.8f), 1) ?: 0
+        val correctUri = generateBeepUri(context, 800.0, 0.15, 0.8f)
+        val wrongUri = generateBeepUri(context, 300.0, 0.25, 0.8f)
+
+        correctSoundId = loadFromUri(context, correctUri)
+        wrongSoundId = loadFromUri(context, wrongUri)
+    }
+
+    private fun loadFromUri(context: Context, uri: android.net.Uri): Int {
+        return try {
+            val afd = context.contentResolver.openAssetFileDescriptor(uri, "r")
+            if (afd != null) {
+                val id = soundPool?.load(afd.fileDescriptor, afd.startOffset, afd.length, 1) ?: 0
+                afd.close()
+                id
+            } else 0
+        } catch (e: Exception) {
+            0
+        }
     }
 
     private fun generateBeepUri(context: Context, frequency: Double, durationSec: Double, volume: Float): android.net.Uri {
