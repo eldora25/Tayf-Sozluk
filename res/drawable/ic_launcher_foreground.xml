@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Kitap gövdesi -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M34,22 L74,22 C77.3,22 80,24.7 80,28 L80,80 C80,83.3 77.3,86 74,86 L34,86 C30.7,86 28,83.3 28,80 L28,28 C28,24.7 30.7,22 34,22 Z" />
+    
+    <!-- Kitap sayfaları (sol) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,30 L52,30 L52,78 L34,78 C32.3,78 31,76.7 31,75 L31,33 C31,31.3 32.3,30 34,30 Z" />
+    
+    <!-- Kitap sayfası çizgileri (sol) -->
+    <path
+        android:fillColor="#BBDEFB"
+        android:pathData="M36,38 L48,38 L48,40 L36,40 Z M36,44 L48,44 L48,46 L36,46 Z M36,50 L48,50 L48,52 L36,52 Z M36,56 L48,56 L48,58 L36,58 Z" />
+    
+    <!-- Sağ sayfa -->
+    <path
+        android:fillColor="#E3F2FD"
+        android:pathData="M54,30 L74,30 C75.1,30 76,30.9 76,32 L76,76 C76,77.1 75.1,78 74,78 L54,78 Z" />
+    
+    <!-- Sağ sayfa çizgileri -->
+    <path
+        android:fillColor="#90CAF9"
+        android:pathData="M56,38 L70,38 L70,40 L56,40 Z M56,44 L70,44 L70,46 L56,46 Z M56,50 L70,50 L70,52 L56,52 Z M56,56 L70,56 L70,58 L56,58 Z" />
+    
+    <!-- Büyüteç (arama simgesi) -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="M62,62 m-6,0 a6,6 0 1,1 12,0 a6,6 0 1,1 -12,0"
+        android:strokeColor="#FF6F00"
+        android:strokeWidth="1" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF6F00"
+        android:strokeWidth="2"
+        android:pathData="M66,66 L70,70" />
+</vector>
