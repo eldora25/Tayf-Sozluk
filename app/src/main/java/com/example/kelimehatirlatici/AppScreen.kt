@@ -240,7 +240,7 @@ fun AppScreen(
             onBack = { currentScreen = "learning" }
         )
 
-               "quiz" -> QuizScreen(
+                  "quiz" -> QuizScreen(
             session = quizSession,
             memorizationThreshold = memorizationThreshold,
             onAnswerCorrect = { q ->
