@@ -1,5 +1,9 @@
 package com.example.kelimehatirlatici.ui
 
+import android.graphics.drawable.AnimatedImageDrawable
+import android.os.Build
+import android.widget.ImageView
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,11 +26,49 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
+
+@Composable
+fun GifImage(
+    @DrawableRes gifRes: Int,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null
+) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // Android 9+ native AnimatedImageDrawable
+        AndroidView(
+            factory = { context ->
+                ImageView(context).apply {
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    val drawable = context.getDrawable(gifRes)
+                    if (drawable is AnimatedImageDrawable) {
+                        setImageDrawable(drawable)
+                        drawable.start()
+                    } else {
+                        setImageResource(gifRes)
+                    }
+                }
+            },
+            modifier = modifier
+        )
+    } else {
+        // Eski cihazlar için Coil kullan
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(gifRes)
+                .crossfade(true)
+                .build(),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Fit
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +248,7 @@ fun LearningCardScreen(
                     OutlinedButton(onClick = { onWrongClick(); isFlipped = false }) { Text("Tekrar") }
                 }
 
-                // ── GIF ANİMASYONU (Coil - ImageRequest.Builder ile) ──
+                // ── GIF ANİMASYONU (native AnimatedImageDrawable + Coil yedek) ──
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
@@ -214,14 +256,10 @@ fun LearningCardScreen(
                         .heightIn(min = 100.dp, max = 180.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.raw.study_gif)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Çalışma animasyonu",
+                    GifImage(
+                        gifRes = R.raw.study_gif,
                         modifier = Modifier.size(120.dp),
-                        contentScale = ContentScale.Fit
+                        contentDescription = "Çalışma animasyonu"
                     )
                 }
             }
@@ -230,7 +268,7 @@ fun LearningCardScreen(
 
             // ══════════ VERSİYON NUMARASI ══════════
             Text(
-                text = "v:01.14        By: Tayfun Yamak ©",
+                text = "v:01.32        By: Tayfun Yamak ©",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1976D2),
