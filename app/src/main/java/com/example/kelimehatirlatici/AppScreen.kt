@@ -33,23 +33,31 @@ fun AppScreen(
     var words by remember { mutableStateOf<List<Word>>(emptyList()) }
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
+    var libraryInfoList by remember { mutableStateOf<List<LibraryInfo>>(emptyList()) }
     var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
     var stats by remember { mutableStateOf(emptyList<com.example.kelimehatirlatici.data.StudyStats>()) }
     var packs by remember { mutableStateOf<List<WordPack>>(emptyList()) }
     var wrongWords by remember { mutableStateOf<List<Word>>(emptyList()) }
     var quizQuestion by remember { mutableStateOf<QuizQuestion?>(null) }
+    var totalWordCount by remember { mutableStateOf(0) }
 
     val quizGenerator = remember { QuizGenerator(repository) }
+
+    // ──────── BEKLENEN İÇE AKTARMA KÜTÜPHANE ADI ────────
+
+    var pendingLibraryName by remember { mutableStateOf("") }
 
     fun refreshData() {
         scope.launch {
             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
             currentWord = repository.getNextWord(selectedLibrary, selectedLevel)
             libraries = repository.getLibraries()
+            libraryInfoList = repository.getLibraryInfoList()
             dailyGoal = repository.getTodayGoal()
             stats = repository.getStats()
             packs = WordPackReader.readAllPacks(context)
             wrongWords = repository.getWrongWords()
+            totalWordCount = repository.getTotalCount(selectedLibrary)
         }
     }
 
@@ -57,13 +65,26 @@ fun AppScreen(
         refreshData()
     }
 
+    // ──────── İÇE AKTARMA LAUNCHER'LARI ────────
+
     val csvLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             scope.launch {
                 val importedWords = CsvImportHelper.importFromCsv(context, uri)
-                repository.addWords(importedWords)
+                // CSV'de library alanı varsa onu kullan, yoksa kullanıcının girdiği adı kullan
+                val libName = importedWords.firstOrNull()?.library
+                    ?.takeIf { it != "İçe Aktarılan CSV" }
+                    ?: pendingLibraryName.ifBlank { "İçe Aktarılan CSV" }
+
+                val finalWords = importedWords.map {
+                    it.copy(library = libName)
+                }
+                repository.addWords(finalWords)
+                selectedLibrary = libName
+                selectedLevel = finalWords.firstOrNull()?.level ?: "Genel"
+                pendingLibraryName = ""
                 refreshData()
                 currentScreen = "learning"
             }
@@ -76,7 +97,17 @@ fun AppScreen(
         if (uri != null) {
             scope.launch {
                 val importedWords = ExcelImportHelper.importFromExcel(context, uri)
-                repository.addWords(importedWords)
+                val libName = importedWords.firstOrNull()?.library
+                    ?.takeIf { it != "İçe Aktarılan Excel" }
+                    ?: pendingLibraryName.ifBlank { "İçe Aktarılan Excel" }
+
+                val finalWords = importedWords.map {
+                    it.copy(library = libName)
+                }
+                repository.addWords(finalWords)
+                selectedLibrary = libName
+                selectedLevel = finalWords.firstOrNull()?.level ?: "Genel"
+                pendingLibraryName = ""
                 refreshData()
                 currentScreen = "learning"
             }
@@ -89,12 +120,22 @@ fun AppScreen(
         if (uri != null) {
             scope.launch {
                 val importedWords = LingoesImportHelper.importFromLingoesText(context, uri)
-                repository.addWords(importedWords)
+                val libName = pendingLibraryName.ifBlank { "Lingoes TXT" }
+
+                val finalWords = importedWords.map {
+                    it.copy(library = libName)
+                }
+                repository.addWords(finalWords)
+                selectedLibrary = libName
+                selectedLevel = "Genel"
+                pendingLibraryName = ""
                 refreshData()
                 currentScreen = "learning"
             }
         }
     }
+
+    // ──────── EKRAN YÖNLENDİRME ────────
 
     when (currentScreen) {
         "learning" -> LearningCardScreen(
@@ -102,6 +143,7 @@ fun AppScreen(
             selectedLibrary = selectedLibrary,
             selectedLevel = selectedLevel,
             dailyGoal = dailyGoal,
+            totalWordCount = totalWordCount,
             onKnownClick = {
                 scope.launch {
                     currentWord?.let {
@@ -113,9 +155,7 @@ fun AppScreen(
             },
             onWrongClick = {
                 scope.launch {
-                    currentWord?.let {
-                        repository.markWrong(it)
-                    }
+                    currentWord?.let { repository.markWrong(it) }
                     refreshData()
                 }
             },
@@ -141,11 +181,7 @@ fun AppScreen(
             onQuizClick = {
                 scope.launch {
                     val word = repository.getNextWord(selectedLibrary, selectedLevel)
-                    quizQuestion = if (word != null) {
-                        quizGenerator.generateQuestion(word)
-                    } else {
-                        null
-                    }
+                    quizQuestion = if (word != null) quizGenerator.generateQuestion(word) else null
                     currentScreen = "quiz"
                 }
             },
@@ -166,13 +202,7 @@ fun AppScreen(
             onSave = { word, meaning, example, library, level ->
                 scope.launch {
                     repository.addWord(
-                        Word(
-                            word = word,
-                            meaning = meaning,
-                            example = example,
-                            library = library,
-                            level = level
-                        )
+                        Word(word = word, meaning = meaning, example = example, library = library, level = level)
                     )
                     selectedLibrary = library
                     selectedLevel = level
@@ -189,13 +219,40 @@ fun AppScreen(
         )
 
         "library" -> LibrarySelectScreen(
-            libraries = libraries,
+            libraryInfoList = libraryInfoList,
             selectedLibrary = selectedLibrary,
             onLibrarySelected = {
                 selectedLibrary = it
                 currentScreen = "learning"
             },
+            onManageLibraries = {
+                refreshData()
+                currentScreen = "manageLibraries"
+            },
             onBack = { currentScreen = "learning" }
+        )
+
+        "manageLibraries" -> LibraryManageScreen(
+            libraryInfoList = libraryInfoList,
+            onDeleteLibrary = { lib ->
+                scope.launch {
+                    repository.deleteLibrary(lib)
+                    if (selectedLibrary == lib) {
+                        selectedLibrary = "İngilizce A1"
+                    }
+                    refreshData()
+                }
+            },
+            onRenameLibrary = { oldName, newName ->
+                scope.launch {
+                    repository.renameLibrary(oldName, newName)
+                    if (selectedLibrary == oldName) {
+                        selectedLibrary = newName
+                    }
+                    refreshData()
+                }
+            },
+            onBack = { currentScreen = "library" }
         )
 
         "level" -> LevelSelectScreen(
@@ -229,32 +286,29 @@ fun AppScreen(
             question = quizQuestion,
             onAnswerSelected = { correct ->
                 scope.launch {
-                    quizQuestion?.word?.let {
-                        repository.recordQuizResult(it, correct)
-                    }
+                    quizQuestion?.word?.let { repository.recordQuizResult(it, correct) }
                 }
             },
             onNextQuestion = {
                 scope.launch {
                     val word = repository.getNextWord(selectedLibrary, selectedLevel)
-                    quizQuestion = if (word != null) {
-                        quizGenerator.generateQuestion(word)
-                    } else {
-                        null
-                    }
+                    quizQuestion = if (word != null) quizGenerator.generateQuestion(word) else null
                 }
             },
             onBack = { currentScreen = "learning" }
         )
 
         "import" -> ImportScreen(
-            onCsvImportClick = {
+            onCsvImportClick = { libraryName ->
+                pendingLibraryName = libraryName
                 csvLauncher.launch("text/*")
             },
-            onExcelImportClick = {
+            onExcelImportClick = { libraryName ->
+                pendingLibraryName = libraryName
                 excelLauncher.launch("*/*")
             },
-            onLingoesImportClick = {
+            onLingoesImportClick = { libraryName ->
+                pendingLibraryName = libraryName
                 lingoesLauncher.launch("text/*")
             },
             onBack = { currentScreen = "learning" }
