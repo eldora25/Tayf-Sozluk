@@ -1,5 +1,7 @@
 package com.example.kelimehatirlatici
 
+import androidx.compose.runtime.mutableIntStateOf
+import com.example.kelimehatirlatici.data.DailyGoal
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -33,7 +35,7 @@ fun AppScreen(
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
     var libraryInfoList by remember { mutableStateOf<List<LibraryInfo>>(emptyList()) }
-    var dailyGoal by remember { mutableStateOf(com.example.kelimehatirlatici.data.DailyGoal?>(null) }
+    var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
     var packs by remember { mutableStateOf<List<WordPack>>(emptyList()) }
     var wrongWords by remember { mutableStateOf<List<Word>>(emptyList()) }
     var totalWordCount by remember { mutableIntStateOf(0) }
