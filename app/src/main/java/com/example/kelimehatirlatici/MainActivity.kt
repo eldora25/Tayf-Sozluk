@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         ttsManager = TtsManager(this)
-        val dao = AppDatabase.getInstance(this).wordDao()
+        val dao = AppDatabase.getDatabase(this).wordDao()
         repository = WordRepository(dao)
         settings = AppSettings(this)
 
