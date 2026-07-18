@@ -14,7 +14,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        // ★ Değişen satır: GitHub run number ekleniyor
+        versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
     }
 
     compileOptions {
@@ -28,6 +29,8 @@ android {
 
     buildFeatures {
         compose = true
+        // ★ BuildConfig sınıfını aktif et (zaten varsa yine de ekleyin)
+        buildConfig = true
     }
 
     packaging {
@@ -69,6 +72,5 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
     implementation("org.apache.poi:poi-ooxml:5.2.5")
-// Coil - GIF desteği
     implementation("io.coil-kt:coil-compose:2.6.0")
 }
