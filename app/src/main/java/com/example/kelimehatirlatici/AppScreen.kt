@@ -30,7 +30,7 @@ fun AppScreen(
     var currentScreen by remember { mutableStateOf("learning") }
     var selectedLibrary by remember { mutableStateOf("İngilizce A1") }
     var selectedLevel by remember { mutableStateOf("A1") }
-
+    var darkMode by remember { mutableStateOf(settings.darkMode) }
     var words by remember { mutableStateOf<List<Word>>(emptyList()) }
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -290,9 +290,11 @@ fun AppScreen(
             quizQuestionCount = quizQuestionCount,
             randomOrder = randomOrder,
             memorizationThreshold = memorizationThreshold,
+            darkMode = darkMode,
             onQuizQuestionCountChange = { quizQuestionCount = it; settings.quizQuestionCount = it },
             onRandomOrderChange = { randomOrder = it; settings.randomOrder = it },
             onMemorizationThresholdChange = { memorizationThreshold = it; settings.memorizationThreshold = it },
+            onDarkModeChange = { darkMode = it; settings.darkMode = it },
             onBack = { currentScreen = "learning" }
         )
     }
