@@ -30,9 +30,11 @@ fun AppScreen(
 ) {
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("learning") }
-    var selectedLibrary by remember { mutableStateOf("İngilizce A1") }
-    var selectedLevel by remember { mutableStateOf("A1") }
-    var darkMode by remember { mutableStateOf(settings.darkMode) }
+
+    // ── Seçimleri SharedPreferences'den oku ──
+    var selectedLibrary by remember { mutableStateOf(settings.selectedLibrary) }
+    var selectedLevel by remember { mutableStateOf(settings.selectedLevel) }
+
     var words by remember { mutableStateOf<List<Word>>(emptyList()) }
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -51,10 +53,9 @@ fun AppScreen(
     var quizQuestionCount by remember { mutableIntStateOf(settings.quizQuestionCount) }
     var randomOrder by remember { mutableStateOf(settings.randomOrder) }
     var memorizationThreshold by remember { mutableIntStateOf(settings.memorizationThreshold) }
+    var darkMode by remember { mutableStateOf(settings.darkMode) }
 
     var pendingLibraryName by remember { mutableStateOf("") }
-
-    // Dışa aktarma için değişkenler
     var exportLibraryName by remember { mutableStateOf("") }
 
     fun refreshData() {
@@ -75,8 +76,17 @@ fun AppScreen(
 
     LaunchedEffect(selectedLibrary, selectedLevel) { refreshData() }
 
-    // ──────── DOSYA SEÇİCİLER ────────
-    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    // ── Seçim değişince SharedPreferences'e kaydet ──
+    LaunchedEffect(selectedLibrary) { settings.selectedLibrary = selectedLibrary }
+    LaunchedEffect(selectedLevel) { settings.selectedLevel = selectedLevel }
+
+    // ──── DOSYA SEÇİCİLER ────
+    val csvUri = remember { mutableStateOf<Uri?>(null) }
+    val excelUri = remember { mutableStateOf<Uri?>(null) }
+    val lingoesUri = remember { mutableStateOf<Uri?>(null) }
+
+    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        csvUri.value = uri
         if (uri != null) scope.launch {
             val imported = CsvImportHelper.importFromCsv(context, uri)
             val libName = pendingLibraryName.ifBlank { "İçe Aktarılan CSV" }
@@ -87,7 +97,8 @@ fun AppScreen(
             currentScreen = "learning"
         }
     }
-    val excelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    val excelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        excelUri.value = uri
         if (uri != null) scope.launch {
             val imported = ExcelImportHelper.importFromExcel(context, uri)
             val libName = pendingLibraryName.ifBlank { "İçe Aktarılan Excel" }
@@ -98,7 +109,8 @@ fun AppScreen(
             currentScreen = "learning"
         }
     }
-    val lingoesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    val lingoesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        lingoesUri.value = uri
         if (uri != null) scope.launch {
             val imported = LingoesImportHelper.importFromLingoesText(context, uri)
             val libName = pendingLibraryName.ifBlank { "Lingoes TXT" }
@@ -110,13 +122,13 @@ fun AppScreen(
         }
     }
 
-    // ──────── DIŞA AKTARMA DOSYA OLUŞTURUCU ────────
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri: Uri? ->
+    // ──── DIŞA AKTARMA ────
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) scope.launch {
             try {
                 val csv = repository.exportLibraryAsCsv(exportLibraryName)
-                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(csv.toByteArray(Charsets.UTF_8))
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(csv.toByteArray(Charsets.UTF_8))
                 }
                 Toast.makeText(context, "✅ \"$exportLibraryName\" dışa aktarıldı", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -126,7 +138,7 @@ fun AppScreen(
         }
     }
 
-    // ──────── EKRAN YÖNLENDİRME ────────
+    // ──── EKRAN YÖNLENDİRME ────
     when (currentScreen) {
         "learning" -> LearningCardScreen(
             word = currentWord, selectedLibrary = selectedLibrary, selectedLevel = selectedLevel,
@@ -184,12 +196,6 @@ fun AppScreen(
             },
             onBack = { currentScreen = "learning" }
         )
-        "editWord" -> {
-            // Burada bir state tutmamız lazım. En basiti: LearningCardScreen'e ek parametre olarak vermek.
-            // Ama şimdilik WordListScreen içinde dialog olarak halledelim.
-            // Bu case'e gerek kalmayacak, WordListScreen kendi içinde dialog açacak.
-            currentScreen = "list"
-        }
 
         "library" -> LibrarySelectScreen(
             libraryInfoList = libraryInfoList, selectedLibrary = selectedLibrary,
@@ -240,7 +246,7 @@ fun AppScreen(
             onBack = { currentScreen = "learning" }
         )
 
-                  "quiz" -> QuizScreen(
+        "quiz" -> QuizScreen(
             session = quizSession,
             memorizationThreshold = memorizationThreshold,
             onAnswerCorrect = { q ->
@@ -284,7 +290,7 @@ fun AppScreen(
                 selectedLibrary = pack.name; selectedLevel = pack.level; refreshData(); currentScreen = "learning"
             }},
             onInstallAll = { scope.launch {
-                packs.forEach { pack -> repository.addWords(pack.words.map { Word(word = it.word, meaning = it.meaning, example = it.example, library = pack.name, level = pack.level) }) }
+                packs.forEach { pack -> repository.addWords(pack.words.map { w -> Word(word = w.word, meaning = w.meaning, example = w.example, library = pack.name, level = pack.level) }) }
                 refreshData(); currentScreen = "learning"
             }},
             onBack = { currentScreen = "learning" }
