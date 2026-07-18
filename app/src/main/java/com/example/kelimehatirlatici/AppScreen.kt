@@ -24,7 +24,9 @@ fun AppScreen(
     repository: WordRepository,
     settings: AppSettings,
     context: Context,
-    onSpeak: (String) -> Unit
+    onSpeak: (String) -> Unit,
+    soundManager: SoundManager,
+    onDarkModeChange: (Boolean) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("learning") }
@@ -238,7 +240,7 @@ fun AppScreen(
             onBack = { currentScreen = "learning" }
         )
 
-        "quiz" -> QuizScreen(
+               "quiz" -> QuizScreen(
             session = quizSession,
             memorizationThreshold = memorizationThreshold,
             onAnswerCorrect = { q ->
@@ -257,6 +259,10 @@ fun AppScreen(
                 scope.launch { repository.markAsLearned(q.word) }
             },
             onSpeak = onSpeak,
+            onPlayCorrectSound = { soundManager.playCorrect() },
+            onPlayWrongSound = { soundManager.playWrong() },
+            isSoundMuted = soundManager.isMuted,
+            onToggleMute = { soundManager.isMuted = !soundManager.isMuted },
             onBack = {
                 quizSession.isRunning = false
                 currentScreen = "learning"
@@ -294,7 +300,7 @@ fun AppScreen(
             onQuizQuestionCountChange = { quizQuestionCount = it; settings.quizQuestionCount = it },
             onRandomOrderChange = { randomOrder = it; settings.randomOrder = it },
             onMemorizationThresholdChange = { memorizationThreshold = it; settings.memorizationThreshold = it },
-            onDarkModeChange = { darkMode = it; settings.darkMode = it },
+            onDarkModeChange = { darkMode = it; settings.darkMode = it; onDarkModeChange(it) },
             onBack = { currentScreen = "learning" }
         )
     }
