@@ -1,5 +1,6 @@
 package com.example.kelimehatirlatici.ui
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,11 +11,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +45,19 @@ fun LearningCardScreen(
     onWrongWordsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    var showMeaning by remember(word?.id) { mutableStateOf(false) }
+    // Kart çevirme animasyonu
+    var isFlipped by remember(word?.id) { mutableStateOf(false) }
+    var isAnimating by remember { mutableStateOf(false) }
+
+    val rotationY by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "cardFlip"
+    )
+
+    // Kartın ön yüzü 0-90, arka yüzü 90-180 derece arasında görünür
+    val showFront = rotationY < 90f
+
     var menuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -109,30 +127,130 @@ fun LearningCardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Menüden Paketler bölümünden hazır kelimeleri yükleyebilir veya yeni kelime ekleyebilirsin.", style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)) {
-                        Column(modifier = Modifier.padding(24.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = word.word, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                                IconButton(onClick = { onSpeakClick(word.word) }) {
-                                    Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Seslendir")
+                    // ══════════ ÇEVRİLEBİLİR KELİME KARTI ══════════
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                rotationY = this@LearningCardScreen.rotationY
+                                cameraDistance = 12f * density
+                            }
+                            .then(
+                                Modifier.defaultMinSize(minHeight = 220.dp)
+                            ),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        onClick = {
+                            if (!isAnimating) {
+                                if (!isFlipped) {
+                                    // Ön yüzdeyken tıklandı → seslendir + çevir
+                                    onSpeakClick(word.word)
+                                }
+                                isFlipped = !isFlipped
+                            }
+                        },
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFE3F2FD)  // Quiz kartıyla aynı açık mavi
+                        )
+                    ) {
+                        if (showFront) {
+                            // ══════════ ÖN YÜZ: KELİME ══════════
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 220.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = word.word,
+                                            style = MaterialTheme.typography.displaySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0D47A1),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Icon(
+                                            imageVector = Icons.Default.VolumeUp,
+                                            contentDescription = "Seslendir",
+                                            tint = Color(0xFF1976D2),
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Anlamı görmek için dokun",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF1976D2).copy(alpha = 0.6f)
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            if (showMeaning) {
-                                Text(text = word.meaning, style = MaterialTheme.typography.titleLarge)
-                                if (word.example.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(text = word.example, style = MaterialTheme.typography.bodyLarge)
+                        } else {
+                            // ══════════ ARKA YÜZ: ANLAM ══════════
+                            // Y ekseninde çevrildiği için içerik de ters görünmesin diye tekrar çevir
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 220.dp)
+                                    .graphicsLayer {
+                                        rotationY = 180f
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(24.dp)
+                                ) {
+                                    Text(
+                                        text = word.meaning,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0D47A1),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    if (word.example.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        HorizontalDivider(color = Color(0xFF0D47A1).copy(alpha = 0.2f))
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = word.example,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color(0xFF1565C0),
+                                            textAlign = TextAlign.Center,
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Geri çevirmek için dokun",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF1976D2).copy(alpha = 0.6f)
+                                    )
                                 }
-                            } else {
-                                Button(onClick = { showMeaning = true }) { Text("Anlamı Göster") }
                             }
                         }
                     }
+
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    // Bilmiyorum / Tekrar butonları
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = onKnownClick) { Text("Biliyorum") }
-                        OutlinedButton(onClick = onWrongClick) { Text("Tekrar") }
+                        Button(onClick = {
+                            onKnownClick()
+                            isFlipped = false
+                        }) { Text("Biliyorum") }
+                        OutlinedButton(onClick = {
+                            onWrongClick()
+                            isFlipped = false
+                        }) { Text("Tekrar") }
                     }
                 }
 
@@ -140,14 +258,22 @@ fun LearningCardScreen(
             }
 
             // ══════════ VERSİYON NUMARASI ══════════
-            Text(
-                text = "v:00.76",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(16.dp)
-            )
+            ) {
+                Text(
+                    text = "v:00.77",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+                Text(
+                    text = " By: Tayfun Yamak ©",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                )
+            }
         }
     }
 }
