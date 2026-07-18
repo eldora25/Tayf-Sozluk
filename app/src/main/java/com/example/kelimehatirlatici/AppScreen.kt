@@ -174,15 +174,14 @@ fun AppScreen(
 
         "list" -> WordListScreen(
             words = words,
-            onEditWord = { wordToEdit ->
-                currentScreen = "editWord"
-                // Geçici state
-                scope.launch { /* handled inline */ }
+            onUpdateWord = { id, newWord, newMeaning, newExample ->
+                scope.launch {
+                    repository.updateWordDetails(id, newWord, newMeaning, newExample)
+                    refreshData()
+                }
             },
-            onRefresh = { refreshData() },
             onBack = { currentScreen = "learning" }
         )
-
         "editWord" -> {
             // Burada bir state tutmamız lazım. En basiti: LearningCardScreen'e ek parametre olarak vermek.
             // Ama şimdilik WordListScreen içinde dialog olarak halledelim.
