@@ -63,6 +63,32 @@ interface WordDao {
         limit: Int
     ): List<Word>
 
+    // ──────── YENİ SORGULAR ────────
+
+    @Query("""
+        SELECT COUNT(*) FROM words
+        WHERE library = :library
+    """)
+    suspend fun getTotalCount(library: String): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM words
+        WHERE library = :library AND isLearned = 1
+    """)
+    suspend fun getLearnedCount(library: String): Int
+
+    @Query("""
+        DELETE FROM words WHERE library = :library
+    """)
+    suspend fun deleteWordsByLibrary(library: String)
+
+    @Query("""
+        UPDATE words SET library = :newName WHERE library = :oldName
+    """)
+    suspend fun updateLibraryName(oldName: String, newName: String)
+
+    // ──────── GOAL ────────
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoal(goal: DailyGoal)
 
@@ -75,6 +101,8 @@ interface WordDao {
         LIMIT 1
     """)
     suspend fun getGoalByDate(date: String): DailyGoal?
+
+    // ──────── STATS ────────
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStats(stats: StudyStats)
