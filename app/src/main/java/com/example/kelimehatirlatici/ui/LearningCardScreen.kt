@@ -35,6 +35,7 @@ fun LearningCardScreen(
     onImportClick: () -> Unit,
     onPacksClick: () -> Unit,
     onWrongWordsClick: () -> Unit
+    onSettingsClick: () -> Unit 
 ) {
     var showMeaning by remember(word?.id) { mutableStateOf(false) }
 
@@ -167,6 +168,7 @@ fun LearningCardScreen(
             MenuButton("İçe Aktar", onImportClick)
             MenuButton("Paketler", onPacksClick)
             MenuButton("Yanlış Kelimeler", onWrongWordsClick)
+            MenuButton("Ayarlar", onSettingsClick)
         }
     }
 }
