@@ -16,12 +16,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
@@ -204,22 +204,19 @@ fun LearningCardScreen(
                     OutlinedButton(onClick = { onWrongClick(); isFlipped = false }) { Text("Tekrar") }
                 }
 
-                // ── GIF / ANİMASYON ──
+                // ── GIF ANİMASYONU (Coil ile) ──
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 80.dp, max = 160.dp),
+                        .heightIn(min = 100.dp, max = 180.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Eğer gerçek bir GIF kullanmak isterseniz Coil kütüphanesi ile:
-                    // AsyncImage(model = R.drawable.study_gif, contentDescription = "Çalışma animasyonu")
-                    // Şimdilik placeholder olarak bir Image koyalım:
-                    androidx.compose.material3.Icon(
-                        painter = painterResource(id = R.drawable.study_gif),  // ← SİZİN GIF'inizi koyacağınız yer
+                    AsyncImage(
+                        model = R.drawable.study_gif,  // ← res/drawable/study_gif.gif dosyanız
                         contentDescription = "Çalışma animasyonu",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(120.dp)
+                        modifier = Modifier.size(120.dp),
+                        contentScale = ContentScale.Fit
                     )
                 }
             }
