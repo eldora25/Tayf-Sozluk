@@ -47,6 +47,20 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE library = :library AND isLearned = 0 ORDER BY RANDOM()")
     suspend fun getUnlearnedWordsRandom(library: String): List<Word>
 
+    // ══════════ YENİ SORGULAR ══════════
+
+    /** Kelime eklemeden önce aynı kütüphanede var mı kontrolü */
+    @Query("SELECT COUNT(*) FROM words WHERE library = :library AND word = :word")
+    suspend fun countByLibraryAndWord(library: String, word: String): Int
+
+    /** Tüm kelimeleri getir (dışa aktarma için) */
+    @Query("SELECT * FROM words WHERE library = :library ORDER BY word ASC")
+    suspend fun getWordsByLibrary(library: String): List<Word>
+
+    /** Kelime ID'sine göre getir */
+    @Query("SELECT * FROM words WHERE id = :id LIMIT 1")
+    suspend fun getWordById(id: Int): Word?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoal(goal: DailyGoal)
 
