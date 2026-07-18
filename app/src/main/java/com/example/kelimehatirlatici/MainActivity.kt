@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -22,7 +21,8 @@ private val LightColors = lightColorScheme(
     secondaryContainer = Color(0xFFE1BEE7),
     surface = Color(0xFFFFFBFE),
     onSurface = Color(0xFF1C1B1F),
-    background = Color(0xFFF5F5F5),
+    surfaceVariant = Color(0xFFF5F0F7),
+    background = Color(0xFFFAFAFA),
     onBackground = Color(0xFF1C1B1F),
     error = Color(0xFFF44336),
     onError = Color.White
@@ -35,8 +35,9 @@ private val DarkColors = darkColorScheme(
     secondary = Color(0xFFCE93D8),
     onSecondary = Color(0xFF4A148C),
     secondaryContainer = Color(0xFF7B1FA2),
-    surface = Color(0xFF1C1B1F),
+    surface = Color(0xFF1E1E1E),
     onSurface = Color(0xFFE6E1E5),
+    surfaceVariant = Color(0xFF2D2D2D),
     background = Color(0xFF121212),
     onBackground = Color(0xFFE6E1E5),
     error = Color(0xFFEF9A9A),
@@ -48,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var ttsManager: TtsManager
     private lateinit var repository: WordRepository
     private lateinit var settings: AppSettings
+    private lateinit var soundManager: SoundManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,9 +59,11 @@ class MainActivity : ComponentActivity() {
         val dao = AppDatabase.getDatabase(this).wordDao()
         repository = WordRepository(dao)
         settings = AppSettings(this)
+        soundManager = SoundManager(this)
 
         setContent {
-            val darkMode by remember { mutableStateOf(settings.darkMode) }
+            // darkMode state'i burada tutulur, değişince MaterialTheme yeniden oluşur
+            var darkMode by remember { mutableStateOf(settings.darkMode) }
 
             MaterialTheme(
                 colorScheme = if (darkMode) DarkColors else LightColors
@@ -68,7 +72,11 @@ class MainActivity : ComponentActivity() {
                     repository = repository,
                     settings = settings,
                     context = this,
-                    onSpeak = { text -> ttsManager.speak(text) }
+                    onSpeak = { text -> ttsManager.speak(text) },
+                    soundManager = soundManager,
+                    onDarkModeChange = { newValue ->
+                        darkMode = newValue
+                    }
                 )
             }
         }
@@ -76,6 +84,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         ttsManager.shutdown()
+        soundManager.release()
         super.onDestroy()
     }
 }
