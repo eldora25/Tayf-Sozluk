@@ -15,12 +15,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,18 +45,17 @@ fun LearningCardScreen(
     onWrongWordsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    // Kart çevirme animasyonu
     var isFlipped by remember(word?.id) { mutableStateOf(false) }
     var isAnimating by remember { mutableStateOf(false) }
 
-    val rotationY by animateFloatAsState(
+    // animateFloatAsState'ten gelen değer "flipRotation" olarak adlandırıldı
+    val flipRotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "cardFlip"
     )
 
-    // Kartın ön yüzü 0-90, arka yüzü 90-180 derece arasında görünür
-    val showFront = rotationY < 90f
+    val showFront = flipRotation < 90f
 
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -127,34 +126,30 @@ fun LearningCardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Menüden Paketler bölümünden hazır kelimeleri yükleyebilir veya yeni kelime ekleyebilirsin.", style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    // ══════════ ÇEVRİLEBİLİR KELİME KARTI ══════════
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .graphicsLayer {
-                                rotationY = this@LearningCardScreen.rotationY
+                                rotationY = flipRotation
                                 cameraDistance = 12f * density
                             }
-                            .then(
-                                Modifier.defaultMinSize(minHeight = 220.dp)
-                            ),
+                            .defaultMinSize(minHeight = 220.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                         onClick = {
                             if (!isAnimating) {
                                 if (!isFlipped) {
-                                    // Ön yüzdeyken tıklandı → seslendir + çevir
                                     onSpeakClick(word.word)
                                 }
                                 isFlipped = !isFlipped
                             }
                         },
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFE3F2FD)  // Quiz kartıyla aynı açık mavi
+                            containerColor = Color(0xFFE3F2FD)
                         )
                     ) {
                         if (showFront) {
-                            // ══════════ ÖN YÜZ: KELİME ══════════
+                            // ══════════ ÖN YÜZ ══════════
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -193,8 +188,7 @@ fun LearningCardScreen(
                                 }
                             }
                         } else {
-                            // ══════════ ARKA YÜZ: ANLAM ══════════
-                            // Y ekseninde çevrildiği için içerik de ters görünmesin diye tekrar çevir
+                            // ══════════ ARKA YÜZ ══════════
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -225,7 +219,7 @@ fun LearningCardScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             color = Color(0xFF1565C0),
                                             textAlign = TextAlign.Center,
-                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                            fontStyle = FontStyle.Italic
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -241,7 +235,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Bilmiyorum / Tekrar butonları
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Button(onClick = {
                             onKnownClick()
@@ -257,7 +250,7 @@ fun LearningCardScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
 
-            // ══════════ VERSİYON NUMARASI ══════════
+            // ══════════ VERSİYON ══════════
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
