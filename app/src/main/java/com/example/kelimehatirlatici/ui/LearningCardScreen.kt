@@ -216,7 +216,7 @@ fun LearningCardScreen(
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.drawable.study_gif)
+                            .data(R.raw.study_gif)
                             .crossfade(true)
                             .build(),
                         contentDescription = "Çalışma animasyonu",
