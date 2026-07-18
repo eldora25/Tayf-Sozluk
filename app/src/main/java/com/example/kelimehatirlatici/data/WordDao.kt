@@ -1,7 +1,7 @@
 package com.example.kelimehatirlatici.data
 
 import androidx.room.*
-import com.example.kelimehatirlatici.LibraryStatRow
+import com.example.kelimehatirlatici.data.LibraryStatRow
 
 @Dao
 interface WordDao {
