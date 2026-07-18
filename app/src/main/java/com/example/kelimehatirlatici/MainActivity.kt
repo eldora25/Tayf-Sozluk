@@ -3,36 +3,37 @@ package com.example.kelimehatirlatici
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.lifecycle.lifecycleScope
+import androidx.activity.enableEdgeToEdge
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.tts.TtsManager
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var ttsManager: TtsManager
+    private lateinit var repository: WordRepository
+    private lateinit var settings: AppSettings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val database = AppDatabase.getDatabase(this)
-        val repository = WordRepository(database.wordDao())
+        enableEdgeToEdge()
 
         ttsManager = TtsManager(this)
+        val dao = AppDatabase.getInstance(this).wordDao()
+        repository = WordRepository(dao)
+        settings = AppSettings(this)
 
         setContent {
             AppScreen(
                 repository = repository,
+                settings = settings,
                 context = this,
-                onSpeak = { text ->
-                    ttsManager.speak(text)
-                }
+                onSpeak = { text -> ttsManager.speak(text) }
             )
         }
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         ttsManager.shutdown()
+        super.onDestroy()
     }
 }
