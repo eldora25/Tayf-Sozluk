@@ -8,6 +8,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+data class LibraryInfo(
+    val name: String,
+    val totalCount: Int,
+    val learnedCount: Int,
+    val notLearnedCount: Int
+)
+
 class WordRepository(
     private val wordDao: WordDao
 ) {
@@ -37,6 +44,34 @@ class WordRepository(
         return wordDao.getLibraries()
     }
 
+    // ──────── YENİ ────────
+
+    suspend fun getTotalCount(library: String): Int {
+        return wordDao.getTotalCount(library)
+    }
+
+    suspend fun getLibraryInfoList(): List<LibraryInfo> {
+        val libraries = wordDao.getLibraries()
+        return libraries.map { lib ->
+            LibraryInfo(
+                name = lib,
+                totalCount = wordDao.getTotalCount(lib),
+                learnedCount = wordDao.getLearnedCount(lib),
+                notLearnedCount = wordDao.getTotalCount(lib) - wordDao.getLearnedCount(lib)
+            )
+        }
+    }
+
+    suspend fun deleteLibrary(library: String) {
+        wordDao.deleteWordsByLibrary(library)
+    }
+
+    suspend fun renameLibrary(oldName: String, newName: String) {
+        wordDao.updateLibraryName(oldName, newName)
+    }
+
+    // ──────── MEVCUT ────────
+
     suspend fun markKnown(word: Word) {
         wordDao.updateWord(
             word.copy(
@@ -45,7 +80,6 @@ class WordRepository(
                 lastReviewedAt = System.currentTimeMillis()
             )
         )
-
         increaseTodayLearned()
     }
 
@@ -86,9 +120,7 @@ class WordRepository(
             )
         } else {
             wordDao.updateGoal(
-                current.copy(
-                    targetCount = target
-                )
+                current.copy(targetCount = target)
             )
         }
     }
@@ -97,17 +129,11 @@ class WordRepository(
         val current = getTodayGoal()
         if (current == null) {
             wordDao.insertGoal(
-                DailyGoal(
-                    date = today(),
-                    targetCount = 10,
-                    completedCount = 1
-                )
+                DailyGoal(date = today(), targetCount = 10, completedCount = 1)
             )
         } else {
             wordDao.updateGoal(
-                current.copy(
-                    completedCount = current.completedCount + 1
-                )
+                current.copy(completedCount = current.completedCount + 1)
             )
         }
     }
@@ -116,13 +142,9 @@ class WordRepository(
         return wordDao.getStats()
     }
 
-    suspend fun recordQuizResult(
-        word: Word,
-        correct: Boolean
-    ) {
+    suspend fun recordQuizResult(word: Word, correct: Boolean) {
         val today = today()
         val current = wordDao.getStatsByDate(today)
-
         if (correct) {
             wordDao.updateWord(
                 word.copy(
@@ -133,7 +155,6 @@ class WordRepository(
         } else {
             markWrong(word)
         }
-
         if (current == null) {
             wordDao.insertStats(
                 StudyStats(
@@ -157,30 +178,16 @@ class WordRepository(
     private suspend fun increaseTodayLearned() {
         val today = today()
         val current = wordDao.getStatsByDate(today)
-
         if (current == null) {
             wordDao.insertStats(
-                StudyStats(
-                    date = today,
-                    learnedCount = 1,
-                    quizCorrect = 0,
-                    quizWrong = 0,
-                    studyTimeMinute = 0
-                )
+                StudyStats(date = today, learnedCount = 1, quizCorrect = 0, quizWrong = 0, studyTimeMinute = 0)
             )
         } else {
-            wordDao.updateStats(
-                current.copy(
-                    learnedCount = current.learnedCount + 1
-                )
-            )
+            wordDao.updateStats(current.copy(learnedCount = current.learnedCount + 1))
         }
     }
 
     private fun today(): String {
-        return SimpleDateFormat(
-            "yyyy-MM-dd",
-            Locale.getDefault()
-        ).format(Date())
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
 }
