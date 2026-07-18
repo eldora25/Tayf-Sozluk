@@ -3,7 +3,6 @@ package com.example.kelimehatirlatici
 import android.content.Context
 
 class AppSettings(context: Context) {
-
     private val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
 
     var quizQuestionCount: Int
@@ -17,4 +16,8 @@ class AppSettings(context: Context) {
     var memorizationThreshold: Int
         get() = prefs.getInt("memorization_threshold", 3)
         set(value) = prefs.edit().putInt("memorization_threshold", value).apply()
+
+    var darkMode: Boolean
+        get() = prefs.getBoolean("dark_mode", false)
+        set(value) = prefs.edit().putBoolean("dark_mode", value).apply()
 }
