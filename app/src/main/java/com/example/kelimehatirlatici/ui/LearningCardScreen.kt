@@ -16,12 +16,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
@@ -204,7 +206,7 @@ fun LearningCardScreen(
                     OutlinedButton(onClick = { onWrongClick(); isFlipped = false }) { Text("Tekrar") }
                 }
 
-                // ── GIF ANİMASYONU (Coil ile) ──
+                // ── GIF ANİMASYONU (Coil - ImageRequest.Builder ile) ──
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
@@ -213,7 +215,10 @@ fun LearningCardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = R.drawable.study_gif,  // ← res/drawable/study_gif.gif dosyanız
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(R.drawable.study_gif)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = "Çalışma animasyonu",
                         modifier = Modifier.size(120.dp),
                         contentScale = ContentScale.Fit
