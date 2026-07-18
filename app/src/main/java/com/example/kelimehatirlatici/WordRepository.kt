@@ -27,8 +27,13 @@ class WordRepository(private val wordDao: WordDao) {
     suspend fun getTotalCount(library: String) = wordDao.getTotalCount(library)
 
     suspend fun getLibraryInfoList(): List<LibraryInfo> {
-        return wordDao.getLibraryStatRows().map {
-            LibraryInfo(name = it.name, totalCount = it.totalCount, learnedCount = it.learnedCount, notLearnedCount = it.notLearnedCount)
+        return wordDao.getLibraries().map { lib ->
+            LibraryInfo(
+                name = lib,
+                totalCount = wordDao.getTotalCount(lib),
+                learnedCount = wordDao.getLearnedCount(lib),
+                notLearnedCount = wordDao.getTotalCount(lib) - wordDao.getLearnedCount(lib)
+            )
         }
     }
 
@@ -47,7 +52,6 @@ class WordRepository(private val wordDao: WordDao) {
     suspend fun getWrongWords() = wordDao.getWrongWords()
     suspend fun getWrongOptions(correctId: Int, limit: Int) = wordDao.getWrongOptions(correctId, limit)
 
-    // ──────── QUIZ ────────
     suspend fun getUnlearnedWords(library: String, randomOrder: Boolean): List<Word> {
         return if (randomOrder) wordDao.getUnlearnedWordsRandom(library)
         else wordDao.getUnlearnedWordsAlphabetical(library)
@@ -65,7 +69,6 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.updateWord(word.copy(wrongCount = word.wrongCount + 1, lastReviewedAt = System.currentTimeMillis()))
     }
 
-    // ──────── GOAL ────────
     suspend fun getTodayGoal() = wordDao.getGoalByDate(today())
 
     suspend fun setTodayGoal(target: Int) {
@@ -80,7 +83,6 @@ class WordRepository(private val wordDao: WordDao) {
         else wordDao.updateGoal(current.copy(completedCount = current.completedCount + 1))
     }
 
-    // ──────── STATS ────────
     suspend fun getStats() = wordDao.getStats()
 
     suspend fun recordQuizStat(correct: Boolean) {
@@ -94,10 +96,11 @@ class WordRepository(private val wordDao: WordDao) {
         }
     }
 
-    // ──────── ÖZET ────────
     suspend fun getTotalLibraryCount(): Int = getLibraries().size
-    suspend fun getTotalWordCount(): Int = wordDao.getLibraryStatRows().sumOf { it.totalCount }
-    suspend fun getTotalLearnedCount(): Int = wordDao.getLibraryStatRows().sumOf { it.learnedCount }
+
+    suspend fun getTotalWordCount(): Int = getLibraryInfoList().sumOf { it.totalCount }
+
+    suspend fun getTotalLearnedCount(): Int = getLibraryInfoList().sumOf { it.learnedCount }
 
     private suspend fun increaseTodayLearned() {
         val today = today()
