@@ -20,4 +20,13 @@ class AppSettings(context: Context) {
     var darkMode: Boolean
         get() = prefs.getBoolean("dark_mode", false)
         set(value) = prefs.edit().putBoolean("dark_mode", value).apply()
+
+    // ── YENİ: Kalıcı kütüphane ve seviye ──
+    var selectedLibrary: String
+        get() = prefs.getString("selected_library", "İngilizce A1") ?: "İngilizce A1"
+        set(value) = prefs.edit().putString("selected_library", value).apply()
+
+    var selectedLevel: String
+        get() = prefs.getString("selected_level", "A1") ?: "A1"
+        set(value) = prefs.edit().putString("selected_level", value).apply()
 }
