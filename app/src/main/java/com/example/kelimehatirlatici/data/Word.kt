@@ -5,8 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "words")
 data class Word(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val word: String,
     val meaning: String,
     val example: String = "",
@@ -15,5 +14,6 @@ data class Word(
     val isLearned: Boolean = false,
     val repeatCount: Int = 0,
     val wrongCount: Int = 0,
+    val quizCorrectCount: Int = 0,
     val lastReviewedAt: Long = 0L
 )
