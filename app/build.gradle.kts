@@ -69,4 +69,6 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
     implementation("org.apache.poi:poi-ooxml:5.2.5")
+// Coil - GIF desteği
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
