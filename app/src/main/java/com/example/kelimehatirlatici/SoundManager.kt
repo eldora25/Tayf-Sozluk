@@ -25,12 +25,10 @@ class SoundManager(context: Context) {
 
         soundPool?.setOnLoadCompleteListener { _, _, _ -> loaded = true }
 
-        // Ham ses verisi oluştur — beep sesleri
-        correctSoundId = soundPool?.load(context, generateBeepUri(context, 800.0, 0.15, 0.6f), 1) ?: 0
-        wrongSoundId = soundPool?.load(context, generateBeepUri(context, 300.0, 0.25, 0.6f), 1) ?: 0
+        correctSoundId = soundPool?.load(context, generateBeepUri(context, 800.0, 0.15, 0.8f), 1) ?: 0
+        wrongSoundId = soundPool?.load(context, generateBeepUri(context, 300.0, 0.25, 0.8f), 1) ?: 0
     }
 
-    /** Programatik olarak beep ses dosyası oluştur */
     private fun generateBeepUri(context: Context, frequency: Double, durationSec: Double, volume: Float): android.net.Uri {
         val sampleRate = 44100
         val numSamples = (sampleRate * durationSec).toInt()
@@ -41,15 +39,14 @@ class SoundManager(context: Context) {
         }
 
         val byteArray = java.io.ByteArrayOutputStream()
-        // WAV header
         val dataSize = numSamples * 2
         byteArray.write("RIFF".toByteArray())
         byteArray.write(intToByteArray(36 + dataSize))
         byteArray.write("WAVE".toByteArray())
         byteArray.write("fmt ".toByteArray())
         byteArray.write(intToByteArray(16))
-        byteArray.write(shortToByteArray(1)) // PCM
-        byteArray.write(shortToByteArray(1)) // Mono
+        byteArray.write(shortToByteArray(1))
+        byteArray.write(shortToByteArray(1))
         byteArray.write(intToByteArray(sampleRate))
         byteArray.write(intToByteArray(sampleRate * 2))
         byteArray.write(shortToByteArray(2))
@@ -65,27 +62,21 @@ class SoundManager(context: Context) {
         return android.net.Uri.fromFile(file)
     }
 
-    private fun intToByteArray(value: Int): ByteArray {
-        return byteArrayOf(
-            (value and 0xFF).toByte(),
-            (value shr 8 and 0xFF).toByte(),
-            (value shr 16 and 0xFF).toByte(),
-            (value shr 24 and 0xFF).toByte()
-        )
-    }
+    private fun intToByteArray(value: Int) = byteArrayOf(
+        (value and 0xFF).toByte(),
+        (value shr 8 and 0xFF).toByte(),
+        (value shr 16 and 0xFF).toByte(),
+        (value shr 24 and 0xFF).toByte()
+    )
 
-    private fun shortToByteArray(value: Int): ByteArray {
-        return byteArrayOf(
-            (value and 0xFF).toByte(),
-            (value shr 8 and 0xFF).toByte()
-        )
-    }
+    private fun shortToByteArray(value: Int) = byteArrayOf(
+        (value and 0xFF).toByte(),
+        (value shr 8 and 0xFF).toByte()
+    )
 
     var isMuted: Boolean
         get() = muted
-        set(value) {
-            muted = value
-        }
+        set(value) { muted = value }
 
     fun playCorrect() {
         if (!muted && loaded) {
