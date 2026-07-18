@@ -1,12 +1,12 @@
 package com.example.kelimehatirlatici
 
-import androidx.compose.runtime.mutableIntStateOf
-import com.example.kelimehatirlatici.data.DailyGoal
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
+import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.importer.CsvImportHelper
 import com.example.kelimehatirlatici.importer.ExcelImportHelper
@@ -46,12 +46,14 @@ fun AppScreen(
     val quizGenerator = remember { QuizGenerator(repository) }
     val quizSession = remember { QuizSession() }
 
-    // Ayarlar state
     var quizQuestionCount by remember { mutableIntStateOf(settings.quizQuestionCount) }
     var randomOrder by remember { mutableStateOf(settings.randomOrder) }
     var memorizationThreshold by remember { mutableIntStateOf(settings.memorizationThreshold) }
 
     var pendingLibraryName by remember { mutableStateOf("") }
+
+    // Dışa aktarma için değişkenler
+    var exportLibraryName by remember { mutableStateOf("") }
 
     fun refreshData() {
         scope.launch {
@@ -106,6 +108,22 @@ fun AppScreen(
         }
     }
 
+    // ──────── DIŞA AKTARMA DOSYA OLUŞTURUCU ────────
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            try {
+                val csv = repository.exportLibraryAsCsv(exportLibraryName)
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(csv.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(context, "✅ \"$exportLibraryName\" dışa aktarıldı", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "❌ Hata: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+            refreshData()
+        }
+    }
+
     // ──────── EKRAN YÖNLENDİRME ────────
     when (currentScreen) {
         "learning" -> LearningCardScreen(
@@ -138,12 +156,39 @@ fun AppScreen(
         "add" -> AddWordScreen(
             libraries = libraries,
             onSave = { w, m, e, lib, lvl ->
-                scope.launch { repository.addWord(Word(word = w, meaning = m, example = e, library = lib, level = lvl)); selectedLibrary = lib; selectedLevel = lvl; refreshData(); currentScreen = "learning" }
+                scope.launch {
+                    val isDup = repository.isWordDuplicate(lib, w)
+                    if (isDup) {
+                        Toast.makeText(context, "⚠️ \"$w\" zaten \"$lib\" kütüphanesinde var!", Toast.LENGTH_LONG).show()
+                    } else {
+                        repository.addWord(Word(word = w, meaning = m, example = e, library = lib, level = lvl))
+                        selectedLibrary = lib
+                        selectedLevel = lvl
+                        refreshData()
+                        currentScreen = "learning"
+                    }
+                }
             },
             onBack = { currentScreen = "learning" }
         )
 
-        "list" -> WordListScreen(words = words, onBack = { currentScreen = "learning" })
+        "list" -> WordListScreen(
+            words = words,
+            onEditWord = { wordToEdit ->
+                currentScreen = "editWord"
+                // Geçici state
+                scope.launch { /* handled inline */ }
+            },
+            onRefresh = { refreshData() },
+            onBack = { currentScreen = "learning" }
+        )
+
+        "editWord" -> {
+            // Burada bir state tutmamız lazım. En basiti: LearningCardScreen'e ek parametre olarak vermek.
+            // Ama şimdilik WordListScreen içinde dialog olarak halledelim.
+            // Bu case'e gerek kalmayacak, WordListScreen kendi içinde dialog açacak.
+            currentScreen = "list"
+        }
 
         "library" -> LibrarySelectScreen(
             libraryInfoList = libraryInfoList, selectedLibrary = selectedLibrary,
@@ -154,16 +199,39 @@ fun AppScreen(
 
         "manageLibraries" -> LibraryManageScreen(
             libraryInfoList = libraryInfoList,
-            onDeleteLibrary = { lib -> scope.launch { repository.deleteLibrary(lib); if (selectedLibrary == lib) selectedLibrary = "İngilizce A1"; refreshData() } },
-            onRenameLibrary = { old, new -> scope.launch { repository.renameLibrary(old, new); if (selectedLibrary == old) selectedLibrary = new; refreshData() } },
+            onDeleteLibrary = { lib ->
+                scope.launch {
+                    repository.deleteLibrary(lib)
+                    if (selectedLibrary == lib) selectedLibrary = "İngilizce A1"
+                    refreshData()
+                }
+            },
+            onRenameLibrary = { old, new ->
+                scope.launch {
+                    repository.renameLibrary(old, new)
+                    if (selectedLibrary == old) selectedLibrary = new
+                    refreshData()
+                }
+            },
+            onExportLibrary = { lib ->
+                exportLibraryName = lib
+                exportLauncher.launch("${lib}.csv")
+            },
             onBack = { refreshData(); currentScreen = "library" }
         )
 
-        "level" -> LevelSelectScreen(selectedLevel = selectedLevel, onLevelSelected = { selectedLevel = it; currentScreen = "learning" }, onBack = { currentScreen = "learning" })
+        "level" -> LevelSelectScreen(
+            selectedLevel = selectedLevel,
+            onLevelSelected = { selectedLevel = it; currentScreen = "learning" },
+            onBack = { currentScreen = "learning" }
+        )
 
-        "goal" -> GoalScreen(currentGoal = dailyGoal?.targetCount ?: 10, completed = dailyGoal?.completedCount ?: 0,
+        "goal" -> GoalScreen(
+            currentGoal = dailyGoal?.targetCount ?: 10,
+            completed = dailyGoal?.completedCount ?: 0,
             onSaveGoal = { scope.launch { repository.setTodayGoal(it); refreshData(); currentScreen = "learning" } },
-            onBack = { currentScreen = "learning" })
+            onBack = { currentScreen = "learning" }
+        )
 
         "stats" -> StatsScreen(
             libraryInfoList = libraryInfoList, totalLibraries = totalLibraries,
@@ -189,7 +257,7 @@ fun AppScreen(
             onMarkLearned = { q ->
                 scope.launch { repository.markAsLearned(q.word) }
             },
-            onSpeak = onSpeak,    // ← BU SATIRI EKLE
+            onSpeak = onSpeak,
             onBack = {
                 quizSession.isRunning = false
                 currentScreen = "learning"
