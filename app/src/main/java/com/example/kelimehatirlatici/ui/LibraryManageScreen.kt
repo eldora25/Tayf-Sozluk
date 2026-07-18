@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.kelimehatirlatici.LibraryInfo
 
@@ -15,166 +16,92 @@ fun LibraryManageScreen(
     libraryInfoList: List<LibraryInfo>,
     onDeleteLibrary: (String) -> Unit,
     onRenameLibrary: (String, String) -> Unit,
+    onExportLibrary: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    var deleteDialog by remember { mutableStateOf<String?>(null) }
-    var renameDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var deleteConfirm by remember { mutableStateOf<String?>(null) }
+    var renameDialog by remember { mutableStateOf<String?>(null) }
     var newName by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Kütüphaneleri Yönet") })
-        }
+        topBar = { TopAppBar(title = { Text("Kütüphaneleri Düzenle") }) }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize()
-        ) {
+        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             if (libraryInfoList.isEmpty()) {
                 Text("Henüz kütüphane yok.")
             } else {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(libraryInfoList) { info ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
+                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = info.name,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Toplam: ${info.totalCount}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    Text(
-                                        text = "Öğrenilen: ${info.learnedCount}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    Text(
-                                        text = "Kalan: ${info.notLearnedCount}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
+                                Text(info.name, fontWeight = FontWeight.Bold)
+                                Text("Toplam: ${info.totalCount}  |  ✅ ${info.learnedCount}  |  📚 ${info.notLearnedCount}")
 
                                 Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                     OutlinedButton(
-                                        onClick = {
-                                            newName = info.name
-                                            renameDialog = Pair(info.name, info.name)
-                                        }
-                                    ) {
-                                        Text("Ad Değiştir")
-                                    }
+                                        onClick = { newName = info.name; renameDialog = info.name },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("✏️ Ad Değiştir") }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    OutlinedButton(
+                                        onClick = { onExportLibrary(info.name) },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("📤 Dışa Aktar") }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
 
                                     Button(
-                                        onClick = { deleteDialog = info.name },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Text("Sil")
-                                    }
+                                        onClick = { deleteConfirm = info.name },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("🗑️ Sil") }
                                 }
                             }
                         }
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Geri")
-            }
+            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
         }
     }
 
-    // ──────── SİLME ONAY DİALOGU ────────
-
-    deleteDialog?.let { lib ->
+    // ────── SİLME ONAY DİALOGU ──────
+    if (deleteConfirm != null) {
         AlertDialog(
-            onDismissRequest = { deleteDialog = null },
+            onDismissRequest = { deleteConfirm = null },
             title = { Text("Kütüphaneyi Sil") },
-            text = {
-                Text("«$lib» kütüphanesindeki tüm kelimeler silinecek. Emin misin?")
-            },
+            text = { Text("\"${deleteConfirm}\" kütüphanesini ve içindeki tüm kelimeleri silmek istediğinize emin misiniz?") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteLibrary(lib)
-                        deleteDialog = null
-                    }
-                ) {
-                    Text("Sil", color = MaterialTheme.colorScheme.error)
-                }
+                TextButton(onClick = {
+                    onDeleteLibrary(deleteConfirm!!)
+                    deleteConfirm = null
+                }) { Text("Sil", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = {
-                TextButton(onClick = { deleteDialog = null }) {
-                    Text("İptal")
-                }
-            }
+            dismissButton = { TextButton(onClick = { deleteConfirm = null }) { Text("İptal") } }
         )
     }
 
-    // ──────── AD DEĞİŞTİRME DİALOGU ────────
-
-    renameDialog?.let { (oldName, _) ->
+    // ────── AD DEĞİŞTİRME DİALOGU ──────
+    if (renameDialog != null) {
         AlertDialog(
-            onDismissRequest = {
-                renameDialog = null
-                newName = ""
-            },
+            onDismissRequest = { renameDialog = null },
             title = { Text("Kütüphane Adını Değiştir") },
             text = {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("Yeni ad") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                OutlinedTextField(value = newName, onValueChange = { newName = it }, label = { Text("Yeni ad") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newName.isNotBlank() && newName != oldName) {
-                            onRenameLibrary(oldName, newName)
-                        }
-                        renameDialog = null
-                        newName = ""
+                TextButton(onClick = {
+                    if (newName.isNotBlank()) {
+                        onRenameLibrary(renameDialog!!, newName.trim())
                     }
-                ) {
-                    Text("Kaydet")
-                }
+                    renameDialog = null
+                }) { Text("Değiştir") }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        renameDialog = null
-                        newName = ""
-                    }
-                ) {
-                    Text("İptal")
-                }
-            }
+            dismissButton = { TextButton(onClick = { renameDialog = null }) { Text("İptal") } }
         )
     }
 }
