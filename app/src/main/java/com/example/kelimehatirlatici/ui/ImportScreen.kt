@@ -1,27 +1,26 @@
 package com.example.kelimehatirlatici.ui
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportScreen(
-    onCsvImportClick: () -> Unit,
-    onExcelImportClick: () -> Unit,
-    onLingoesImportClick: () -> Unit,
+    onCsvImportClick: (libraryName: String) -> Unit,
+    onExcelImportClick: (libraryName: String) -> Unit,
+    onLingoesImportClick: (libraryName: String) -> Unit,
     onBack: () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+    var pendingAction by remember { mutableStateOf("") }
+    var libraryName by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text("İçe Aktar")
-                }
-            )
+            TopAppBar(title = { Text("İçe Aktar") })
         }
     ) { padding ->
         Column(
@@ -44,7 +43,10 @@ fun ImportScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = onCsvImportClick,
+                onClick = {
+                    pendingAction = "csv"
+                    showDialog = true
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("CSV İçe Aktar")
@@ -53,7 +55,10 @@ fun ImportScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = onExcelImportClick,
+                onClick = {
+                    pendingAction = "excel"
+                    showDialog = true
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Excel İçe Aktar")
@@ -62,7 +67,10 @@ fun ImportScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = onLingoesImportClick,
+                onClick = {
+                    pendingAction = "lingoes"
+                    showDialog = true
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Lingoes TXT İçe Aktar")
@@ -77,5 +85,52 @@ fun ImportScreen(
                 Text("Geri")
             }
         }
+    }
+
+    // ──────── KÜTÜPHANE İSMİ SORMA DİALOGU ────────
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                libraryName = ""
+            },
+            title = { Text("Kütüphane Adı") },
+            text = {
+                OutlinedTextField(
+                    value = libraryName,
+                    onValueChange = { libraryName = it },
+                    label = { Text("Kütüphane adı girin") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = libraryName.ifBlank { "İçe Aktarılan" }
+                        showDialog = false
+                        libraryName = ""
+                        when (pendingAction) {
+                            "csv" -> onCsvImportClick(name)
+                            "excel" -> onExcelImportClick(name)
+                            "lingoes" -> onLingoesImportClick(name)
+                        }
+                    }
+                ) {
+                    Text("Tamam")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        libraryName = ""
+                    }
+                ) {
+                    Text("İptal")
+                }
+            }
+        )
     }
 }
