@@ -1,7 +1,5 @@
 package com.example.kelimehatirlatici.ui
 
-import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +21,7 @@ fun LearningCardScreen(
     selectedLibrary: String,
     selectedLevel: String,
     dailyGoal: DailyGoal?,
+    totalWordCount: Int,
     onKnownClick: () -> Unit,
     onWrongClick: () -> Unit,
     onSpeakClick: (String) -> Unit,
@@ -46,7 +45,7 @@ fun LearningCardScreen(
                     Column {
                         Text("Kelime Hatırlatıcı")
                         Text(
-                            text = "$selectedLibrary / $selectedLevel",
+                            text = "$selectedLibrary / $selectedLevel  |  Toplam: $totalWordCount kelime",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -103,20 +102,13 @@ fun LearningCardScreen(
                             .fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = word.word,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
-
-                            IconButton(
-                                onClick = {
-                                    onSpeakClick(word.word)
-                                }
-                            ) {
+                            IconButton(onClick = { onSpeakClick(word.word) }) {
                                 Icon(
                                     imageVector = Icons.Default.VolumeUp,
                                     contentDescription = "Seslendir"
@@ -131,7 +123,6 @@ fun LearningCardScreen(
                                 text = word.meaning,
                                 style = MaterialTheme.typography.titleLarge
                             )
-
                             if (word.example.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
@@ -140,11 +131,7 @@ fun LearningCardScreen(
                                 )
                             }
                         } else {
-                            Button(
-                                onClick = {
-                                    showMeaning = true
-                                }
-                            ) {
+                            Button(onClick = { showMeaning = true }) {
                                 Text("Anlamı Göster")
                             }
                         }
@@ -157,24 +144,17 @@ fun LearningCardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Button(
-                        onClick = onKnownClick
-                    ) {
+                    Button(onClick = onKnownClick) {
                         Text("Biliyorum")
                     }
-
-                    OutlinedButton(
-                        onClick = onWrongClick
-                    ) {
+                    OutlinedButton(onClick = onWrongClick) {
                         Text("Tekrar")
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
             Divider()
-
             Spacer(modifier = Modifier.height(16.dp))
 
             MenuButton("Kelime Ekle", onAddWordClick)
@@ -192,10 +172,7 @@ fun LearningCardScreen(
 }
 
 @Composable
-private fun MenuButton(
-    text: String,
-    onClick: () -> Unit
-) {
+private fun MenuButton(text: String, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier
