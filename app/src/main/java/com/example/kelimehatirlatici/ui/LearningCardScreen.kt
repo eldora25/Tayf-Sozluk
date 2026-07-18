@@ -34,8 +34,8 @@ fun LearningCardScreen(
     onQuizClick: () -> Unit,
     onImportClick: () -> Unit,
     onPacksClick: () -> Unit,
-    onWrongWordsClick: () -> Unit
-    onSettingsClick: () -> Unit 
+    onWrongWordsClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     var showMeaning by remember(word?.id) { mutableStateOf(false) }
 
