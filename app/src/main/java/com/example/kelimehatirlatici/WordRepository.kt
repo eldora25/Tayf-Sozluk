@@ -14,7 +14,13 @@ data class LibraryInfo(
 class WordRepository(private val wordDao: WordDao) {
 
     suspend fun addWord(word: Word) = wordDao.insertWord(word)
+
     suspend fun addWords(words: List<Word>) = wordDao.insertWords(words)
+
+    /** Kelime eklemeden önce aynı kütüphanede var mı kontrol et. true = zaten var */
+    suspend fun isWordDuplicate(library: String, word: String): Boolean {
+        return wordDao.countByLibraryAndWord(library, word) > 0
+    }
 
     suspend fun getWordsByLibraryAndLevel(library: String, level: String) =
         wordDao.getWordsByLibraryAndLevel(library, level)
@@ -38,7 +44,9 @@ class WordRepository(private val wordDao: WordDao) {
     }
 
     suspend fun deleteLibrary(library: String) = wordDao.deleteWordsByLibrary(library)
-    suspend fun renameLibrary(oldName: String, newName: String) = wordDao.updateLibraryName(oldName, newName)
+
+    suspend fun renameLibrary(oldName: String, newName: String) =
+        wordDao.updateLibraryName(oldName, newName)
 
     suspend fun markKnown(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true, repeatCount = word.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
@@ -50,7 +58,9 @@ class WordRepository(private val wordDao: WordDao) {
     }
 
     suspend fun getWrongWords() = wordDao.getWrongWords()
-    suspend fun getWrongOptions(correctId: Int, limit: Int) = wordDao.getWrongOptions(correctId, limit)
+
+    suspend fun getWrongOptions(correctId: Int, limit: Int) =
+        wordDao.getWrongOptions(correctId, limit)
 
     suspend fun getUnlearnedWords(library: String, randomOrder: Boolean): List<Word> {
         return if (randomOrder) wordDao.getUnlearnedWordsRandom(library)
@@ -61,8 +71,23 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.updateWord(word.copy(quizCorrectCount = word.quizCorrectCount + 1, lastReviewedAt = System.currentTimeMillis()))
     }
 
+    /** Kelimeyi öğrenilmiş olarak işaretle VE "✅ Öğrenilmiş" kütüphanesine kopyala */
     suspend fun markAsLearned(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true))
+        // Öğrenilmişler kütüphanesine ekle (yoksa oluşur)
+        val learnedLib = "✅ Öğrenilmiş"
+        if (!isWordDuplicate(learnedLib, word.word)) {
+            wordDao.insertWord(
+                Word(
+                    word = word.word,
+                    meaning = word.meaning,
+                    example = word.example,
+                    library = learnedLib,
+                    level = word.level,
+                    isLearned = true
+                )
+            )
+        }
     }
 
     suspend fun recordQuizWrong(word: Word) {
@@ -101,6 +126,26 @@ class WordRepository(private val wordDao: WordDao) {
     suspend fun getTotalWordCount(): Int = getLibraryInfoList().sumOf { it.totalCount }
 
     suspend fun getTotalLearnedCount(): Int = getLibraryInfoList().sumOf { it.learnedCount }
+
+    /** Dışa aktarma için kütüphanedeki tüm kelimeleri CSV string olarak döndür */
+    suspend fun exportLibraryAsCsv(library: String): String {
+        val words = wordDao.getWordsByLibrary(library)
+        val sb = StringBuilder()
+        sb.appendLine("Word,Meaning,Example,Level")
+        words.forEach { w ->
+            val escaped = listOf(w.word, w.meaning, w.example, w.level).joinToString(",") {
+                "\"${it.replace("\"", "\"\"")}\""
+            }
+            sb.appendLine(escaped)
+        }
+        return sb.toString()
+    }
+
+    /** Kelime güncelleme (düzenleme dialog'u için) */
+    suspend fun updateWordDetails(id: Int, newWord: String, newMeaning: String, newExample: String) {
+        val existing = wordDao.getWordById(id) ?: return
+        wordDao.updateWord(existing.copy(word = newWord, meaning = newMeaning, example = newExample))
+    }
 
     private suspend fun increaseTodayLearned() {
         val today = today()
