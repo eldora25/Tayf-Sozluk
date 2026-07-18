@@ -189,6 +189,7 @@ fun AppScreen(
             onMarkLearned = { q ->
                 scope.launch { repository.markAsLearned(q.word) }
             },
+            onSpeak = onSpeak,    // ← BU SATIRI EKLE
             onBack = {
                 quizSession.isRunning = false
                 currentScreen = "learning"
