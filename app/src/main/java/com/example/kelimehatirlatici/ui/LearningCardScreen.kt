@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +48,6 @@ fun LearningCardScreen(
     var isFlipped by remember(word?.id) { mutableStateOf(false) }
     var isAnimating by remember { mutableStateOf(false) }
 
-    // animateFloatAsState'ten gelen değer "flipRotation" olarak adlandırıldı
     val flipRotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -149,7 +148,7 @@ fun LearningCardScreen(
                         )
                     ) {
                         if (showFront) {
-                            // ══════════ ÖN YÜZ ══════════
+                            // ══════════ ÖN YÜZ: KELİME ══════════
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -188,14 +187,16 @@ fun LearningCardScreen(
                                 }
                             }
                         } else {
-                            // ══════════ ARKA YÜZ ══════════
+                            // ══════════ ARKA YÜZ: ANLAM (MOR ZEMİN) ══════════
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .defaultMinSize(minHeight = 220.dp)
                                     .graphicsLayer {
                                         rotationY = 180f
-                                    },
+                                    }
+                                    .clip(MaterialTheme.shapes.extraLarge)
+                                    .background(Color(0xFFF3E5F5)),  // ← Quiz cevap butonlarıyla aynı mor
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(
@@ -207,17 +208,17 @@ fun LearningCardScreen(
                                         text = word.meaning,
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0D47A1),
+                                        color = Color(0xFF4A148C),
                                         textAlign = TextAlign.Center
                                     )
                                     if (word.example.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(16.dp))
-                                        HorizontalDivider(color = Color(0xFF0D47A1).copy(alpha = 0.2f))
+                                        HorizontalDivider(color = Color(0xFF4A148C).copy(alpha = 0.2f))
                                         Spacer(modifier = Modifier.height(16.dp))
                                         Text(
                                             text = word.example,
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = Color(0xFF1565C0),
+                                            color = Color(0xFF6A1B9A),
                                             textAlign = TextAlign.Center,
                                             fontStyle = FontStyle.Italic
                                         )
@@ -226,7 +227,7 @@ fun LearningCardScreen(
                                     Text(
                                         text = "Geri çevirmek için dokun",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF1976D2).copy(alpha = 0.6f)
+                                        color = Color(0xFF7B1FA2).copy(alpha = 0.6f)
                                     )
                                 }
                             }
@@ -250,23 +251,16 @@ fun LearningCardScreen(
                 Spacer(modifier = Modifier.weight(1f))
             }
 
-            // ══════════ VERSİYON ══════════
-            Row(
+            // ══════════ VERSİYON NUMARASI ══════════
+            Text(
+                text = "v:00.93        By: Tayfun Yamak ©",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1976D2),
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(16.dp)
-            ) {
-                Text(
-                    text = "v:00.77",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
-                Text(
-                    text = " By: Tayfun Yamak ©",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                )
-            }
+            )
         }
     }
 }
