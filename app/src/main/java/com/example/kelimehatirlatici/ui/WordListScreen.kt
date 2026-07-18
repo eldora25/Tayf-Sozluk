@@ -17,8 +17,7 @@ import com.example.kelimehatirlatici.data.Word
 @Composable
 fun WordListScreen(
     words: List<Word>,
-    onEditWord: (Word) -> Unit,
-    onRefresh: () -> Unit,
+    onUpdateWord: (Int, String, String, String) -> Unit,
     onBack: () -> Unit
 ) {
     var editingWord by remember { mutableStateOf<Word?>(null) }
@@ -54,11 +53,7 @@ fun WordListScreen(
                                     editMeaningText = w.meaning
                                     editExampleText = w.example
                                 }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Düzenle",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -77,33 +72,18 @@ fun WordListScreen(
             title = { Text("Kelimeyi Düzenle") },
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = editWordText,
-                        onValueChange = { editWordText = it },
-                        label = { Text("Kelime") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(value = editWordText, onValueChange = { editWordText = it }, label = { Text("Kelime") }, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = editMeaningText,
-                        onValueChange = { editMeaningText = it },
-                        label = { Text("Anlam") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(value = editMeaningText, onValueChange = { editMeaningText = it }, label = { Text("Anlam") }, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = editExampleText,
-                        onValueChange = { editExampleText = it },
-                        label = { Text("Örnek Cümle") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    OutlinedTextField(value = editExampleText, onValueChange = { editExampleText = it }, label = { Text("Örnek Cümle") }, modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
+                    val id = editingWord!!.id
                     editingWord = null
-                    onEditWord(editingWord!!)
-                    // Not: onEditWord callback'i AppScreen'de repository.updateWordDetails çağırmalı
+                    onUpdateWord(id, editWordText.trim(), editMeaningText.trim(), editExampleText.trim())
                 }) { Text("Kaydet") }
             },
             dismissButton = {
