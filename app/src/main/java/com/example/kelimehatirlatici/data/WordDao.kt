@@ -1,7 +1,6 @@
 package com.example.kelimehatirlatici.data
 
 import androidx.room.*
-import com.example.kelimehatirlatici.data.LibraryStatRow
 
 @Dao
 interface WordDao {
@@ -30,7 +29,6 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id != :correctId ORDER BY RANDOM() LIMIT :limit")
     suspend fun getWrongOptions(correctId: Int, limit: Int): List<Word>
 
-    // ──────── KÜTÜPHANE ────────
     @Query("SELECT COUNT(*) FROM words WHERE library = :library")
     suspend fun getTotalCount(library: String): Int
 
@@ -43,14 +41,12 @@ interface WordDao {
     @Query("UPDATE words SET library = :newName WHERE library = :oldName")
     suspend fun updateLibraryName(oldName: String, newName: String)
 
-    // ──────── QUIZ ────────
     @Query("SELECT * FROM words WHERE library = :library AND isLearned = 0 ORDER BY word ASC")
     suspend fun getUnlearnedWordsAlphabetical(library: String): List<Word>
 
     @Query("SELECT * FROM words WHERE library = :library AND isLearned = 0 ORDER BY RANDOM()")
     suspend fun getUnlearnedWordsRandom(library: String): List<Word>
 
-    // ──────── GOAL ────────
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoal(goal: DailyGoal)
 
@@ -60,7 +56,6 @@ interface WordDao {
     @Query("SELECT * FROM daily_goals WHERE date = :date LIMIT 1")
     suspend fun getGoalByDate(date: String): DailyGoal?
 
-    // ──────── STATS ────────
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStats(stats: StudyStats)
 
@@ -72,16 +67,4 @@ interface WordDao {
 
     @Query("SELECT * FROM study_stats WHERE date = :date LIMIT 1")
     suspend fun getStatsByDate(date: String): StudyStats?
-
-    // ──────── KÜTÜPHANE İSTATİSTİK SATIRI ────────
-    @Query("""
-        SELECT library AS name,
-               COUNT(*) AS totalCount,
-               SUM(CASE WHEN isLearned = 1 THEN 1 ELSE 0 END) AS learnedCount,
-               SUM(CASE WHEN isLearned = 0 THEN 1 ELSE 0 END) AS notLearnedCount
-        FROM words
-        GROUP BY library
-        ORDER BY library ASC
-    """)
-    suspend fun getLibraryStatRows(): List<LibraryStatRow>
 }
