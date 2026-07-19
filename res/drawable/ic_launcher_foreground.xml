@@ -4,44 +4,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
     <!-- Kitap gövdesi -->
     <path
-        android:fillColor="#1976D2"
-        android:pathData="M30,18 L78,18 C82,18 85,21 85,25 L85,83 C85,87 82,90 78,90 L30,90 C26,90 23,87 23,83 L23,25 C23,21 26,18 30,18 Z" />
-
-    <!-- Sol sayfa -->
-    <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,28 L52,28 L52,80 L30,80 C27.8,80 26,78.2 26,76 L26,32 C26,29.8 27.8,28 30,28 Z" />
-
-    <!-- Sol sayfa çizgileri -->
+        android:pathData="M36,32 L72,32 Q76,32 76,36 L76,72 Q76,76 72,76 L36,76 Q32,76 32,72 L32,36 Q32,32 36,32 Z" />
+    <!-- Sayfa çizgileri -->
     <path
-        android:fillColor="#BBDEFB"
-        android:pathData="M33,38 L49,38 L49,41 L33,41 Z M33,46 L49,46 L49,49 L33,49 Z M33,54 L49,54 L49,57 L33,57 Z M33,62 L49,62 L49,65 L33,65 Z" />
-
-    <!-- Sağ sayfa -->
+        android:fillColor="#E0E0E0"
+        android:pathData="M40,40 L68,40 M40,48 L68,48 M40,56 L68,56 M40,64 L62,64" />
+    <!-- Yıldız (hafıza/başarı sembolü) -->
     <path
-        android:fillColor="#E3F2FD"
-        android:pathData="M54,28 L78,28 C79.7,28 81,29.3 81,31 L81,77 C81,78.7 79.7,80 78,80 L54,80 Z" />
-
-    <!-- Sağ sayfa çizgileri -->
-    <path
-        android:fillColor="#90CAF9"
-        android:pathData="M56,38 L76,38 L76,41 L56,41 Z M56,46 L76,46 L76,49 L56,49 Z M56,54 L76,54 L76,57 L56,57 Z M56,62 L76,62 L76,65 L56,65 Z" />
-
-    <!-- Büyüteç -->
-    <group android:translateX="2" android:translateY="2">
-        <path
-            android:fillColor="#FFC107"
-            android:pathData="M60,56 m-8,0 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0"
-            android:strokeColor="#FF8F00"
-            android:strokeWidth="1.2" />
-        <path
-            android:fillColor="#00000000"
-            android:strokeColor="#FF8F00"
-            android:strokeWidth="3"
-            android:strokeLineCap="round"
-            android:pathData="M65.5,61.5 L73,69" />
-    </group>
+        android:fillColor="#FFD54F"
+        android:pathData="M54,34 L56,38 L60,38.6 L57,41.5 L57.8,46 L54,43.8 L50.2,46 L51,41.5 L48,38.6 L52,38 Z" />
 </vector>
