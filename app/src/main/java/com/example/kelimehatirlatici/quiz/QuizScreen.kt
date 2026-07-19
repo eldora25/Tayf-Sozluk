@@ -27,9 +27,9 @@ import kotlinx.coroutines.delay
 fun QuizScreen(
     session: QuizSession,
     memorizationThreshold: Int,
-    onAnswerCorrect: (Question) -> Unit,       // QuizQuestion → Question
-    onAnswerWrong: (Question) -> Unit,         // QuizQuestion → Question
-    onMarkLearned: (Question) -> Unit,         // QuizQuestion → Question
+    onAnswerCorrect: (Question) -> Unit,
+    onAnswerWrong: (Question) -> Unit,
+    onMarkLearned: (Question) -> Unit,
     onSpeak: (String) -> Unit,
     onPlayCorrectSound: () -> Unit,
     onPlayWrongSound: () -> Unit,
@@ -42,7 +42,6 @@ fun QuizScreen(
     var selectedAnswers by remember(question?.word?.id) { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var correctAnswerSelected by remember(question?.word?.id) { mutableStateOf(false) }
 
-    // GIF durumu
     var showGif by remember(question?.word?.id) { mutableStateOf(false) }
     var lastAnswerCorrect by remember(question?.word?.id) { mutableStateOf(false) }
 
@@ -50,7 +49,6 @@ fun QuizScreen(
 
     LaunchedEffect(isSoundMuted) { muteState = isSoundMuted }
 
-    // Yeni soruya geçildiğinde state'leri sıfırla
     LaunchedEffect(question?.word?.id) {
         selectedAnswers = emptyMap()
         correctAnswerSelected = false
@@ -62,7 +60,6 @@ fun QuizScreen(
         }
     }
 
-    // Zamanlayıcı – milisaniye ekle
     LaunchedEffect(session.isRunning) {
         while (session.isRunning && !session.isFinished) {
             delay(1000L)
@@ -70,10 +67,9 @@ fun QuizScreen(
         }
     }
 
-    // Doğru cevap seçildiğinde: 500ms GIF göster, sonra otomatik geçiş
     LaunchedEffect(correctAnswerSelected) {
         if (correctAnswerSelected) {
-            delay(500) // GIF'in görünmesi için yeterli
+            delay(500)
             question?.let { q ->
                 if (q.word.quizCorrectCount + 1 >= memorizationThreshold) {
                     onMarkLearned(q)
@@ -83,7 +79,8 @@ fun QuizScreen(
                 session.isFinished = true
                 session.isRunning = false
             } else {
-                session.currentIndex = session.currentIndex + 1 // aynı: currentQuestionIndex++
+                // ★ DÜZELTİLDİ: currentQuestionIndex kullan →
+                session.currentQuestionIndex++
             }
         }
     }
@@ -108,7 +105,6 @@ fun QuizScreen(
                 .fillMaxSize()
         ) {
             if (session.isFinished) {
-                // ***************** QUIZ BİTTİ *****************
                 Spacer(modifier = Modifier.height(48.dp))
                 Text(
                     "Quiz Tamamlandı! 🎉",
@@ -150,7 +146,6 @@ fun QuizScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // ★ TEBRİK GIF’İ ★
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(
                     modifier = Modifier
@@ -166,21 +161,14 @@ fun QuizScreen(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Geri") }
+                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
 
             } else if (question == null) {
                 Text("Quiz için yeterli kelime yok.", textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Geri") }
+                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
 
             } else {
-                // ***************** SORU EKRANI *****************
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -188,13 +176,10 @@ fun QuizScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = {
-                            muteState = !muteState
-                            onToggleMute()
-                        },
-                        modifier = Modifier.size(44.dp)
-                    ) {
+                    IconButton(onClick = {
+                        muteState = !muteState
+                        onToggleMute()
+                    }, modifier = Modifier.size(44.dp)) {
                         Icon(
                             imageVector = if (!muteState) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
                             contentDescription = if (!muteState) "Sesi kapat" else "Sesi aç",
@@ -203,58 +188,23 @@ fun QuizScreen(
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            " ${session.correctCount}",
-                            color = Color(0xFF4CAF50),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(22.dp))
+                        Text(" ${session.correctCount}", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFF2196F3),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            " ${session.formattedTime}",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp,
-                            color = Color(0xFF424242)
-                        )
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(20.dp))
+                        Text(" ${session.formattedTime}", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF424242))
                     }
-                    Text(
-                        "${session.currentQuestionNumber}/${session.totalQuestions}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
+                    Text("${session.currentQuestionNumber}/${session.totalQuestions}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = null,
-                            tint = Color(0xFFF44336),
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            " ${session.wrongCount}",
-                            color = Color(0xFFF44336),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFF44336), modifier = Modifier.size(22.dp))
+                        Text(" ${session.wrongCount}", color = Color(0xFFF44336), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Kelime kartı
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -264,17 +214,8 @@ fun QuizScreen(
                         .padding(horizontal = 20.dp, vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            question.word.word,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0D47A1),
-                            textAlign = TextAlign.Center
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Text(question.word.word, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1), textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.width(12.dp))
                         Icon(
                             imageVector = if (!muteState) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
@@ -287,7 +228,6 @@ fun QuizScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Seçenekler
                 question.options.forEach { option ->
                     val isSelectedWrong = selectedAnswers[option] == false
                     val isSelectedCorrect = selectedAnswers[option] == true
@@ -316,7 +256,6 @@ fun QuizScreen(
                                 val isCorrect = option == question.correctAnswer
                                 selectedAnswers = selectedAnswers + (option to isCorrect)
 
-                                // GIF durumunu ayarla
                                 lastAnswerCorrect = isCorrect
                                 showGif = true
 
@@ -333,10 +272,7 @@ fun QuizScreen(
                             }
                         },
                         enabled = canClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = bgColor,
-                            disabledContainerColor = bgColor
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = bgColor, disabledContainerColor = bgColor),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -345,57 +281,22 @@ fun QuizScreen(
                             .border(2.dp, borderColor, RoundedCornerShape(14.dp)),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(22.dp)
-                                        .border(2.dp, radioColor, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Box(modifier = Modifier.size(22.dp).border(2.dp, radioColor, CircleShape), contentAlignment = Alignment.Center) {
                                     if (isSelectedCorrect || isSelectedWrong) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(12.dp)
-                                                .background(radioColor, CircleShape)
-                                        )
+                                        Box(modifier = Modifier.size(12.dp).background(radioColor, CircleShape))
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    option,
-                                    color = Color(0xFF212121),
-                                    fontWeight = if (isSelectedCorrect || isSelectedWrong) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 14.sp,
-                                    lineHeight = 18.sp
-                                )
+                                Text(option, color = Color(0xFF212121), fontWeight = if (isSelectedCorrect || isSelectedWrong) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp, lineHeight = 18.sp)
                             }
-                            if (isSelectedCorrect)
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = "Doğru",
-                                    tint = Color(0xFF4CAF50),
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            else if (isSelectedWrong)
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Yanlış",
-                                    tint = Color(0xFFF44336),
-                                    modifier = Modifier.size(26.dp)
-                                )
+                            if (isSelectedCorrect) Icon(Icons.Default.Check, contentDescription = "Doğru", tint = Color(0xFF4CAF50), modifier = Modifier.size(26.dp))
+                            else if (isSelectedWrong) Icon(Icons.Default.Close, contentDescription = "Yanlış", tint = Color(0xFFF44336), modifier = Modifier.size(26.dp))
                         }
                     }
                 }
 
-                // ★ DOĞRU/YANLIŞ GIF’İ ★
                 if (showGif) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
