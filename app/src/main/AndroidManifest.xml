@@ -8,8 +8,8 @@
         android:label="Kelime Hatırlatıcı"
         android:theme="@style/Theme.KelimeHatirlatici"
         android:supportsRtl="true"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher_round">
+        android:icon="@drawable/ic_launcher"        <!-- BURAYI KONTROL ET -->
+        android:roundIcon="@drawable/ic_launcher_round"> <!-- BURAYI KONTROL ET -->
 
         <activity
             android:name=".MainActivity"
