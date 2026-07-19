@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-
+import com.example.kelimehatirlatici.quiz.Question
 class QuizSession {
     var questions: List<Question> = emptyList()
     var currentQuestionIndex by mutableIntStateOf(0)
