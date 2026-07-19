@@ -151,12 +151,15 @@ fun AppScreen(
             onStatsClick = { refreshData(); currentScreen = "stats" },
             onQuizClick = {
                 scope.launch {
-                    val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
-                    val questions = quizGenerator.generateQuestions(unlearned)
-                    quizSession.start(questions, quizQuestionCount)
-                    currentScreen = "quiz"
-                }
-            },
+        val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
+        val generated = quizGenerator.generateQuestions(unlearned) // List<QuizQuestion>
+        val questions = generated.map { q ->
+            Question(word = q.word, options = q.options, correctAnswer = q.correctAnswer)
+        }
+        quizSession.start(questions, quizQuestionCount)
+        currentScreen = "quiz"
+    }
+},
             onImportClick = { currentScreen = "import" },
             onPacksClick = { packs = WordPackReader.readAllPacks(context); currentScreen = "packs" },
             onWrongWordsClick = { scope.launch { wrongWords = repository.getWrongWords(); currentScreen = "wrong" } },
