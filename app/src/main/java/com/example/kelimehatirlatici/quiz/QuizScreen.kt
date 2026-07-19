@@ -1,6 +1,5 @@
 package com.example.kelimehatirlatici.quiz
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.ui.GifImage
 
@@ -38,7 +36,6 @@ fun QuizScreen(
     var showGif by remember { mutableStateOf(false) }
     var lastAnswerCorrect by remember { mutableStateOf(false) }
 
-    // Quiz bittiğinde
     if (session.isFinished) {
         QuizCompletedScreen(
             totalCorrect = session.correctCount,
@@ -50,7 +47,6 @@ fun QuizScreen(
         return
     }
 
-    // Soru yoksa (beklenmeyen durum)
     if (currentQuestion == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Soru bulunamadı")
@@ -64,14 +60,12 @@ fun QuizScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Üst bilgi
         Text(
             text = "Soru ${session.currentQuestionIndex + 1} / ${session.questions.size}",
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Ses kontrolü
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -84,7 +78,6 @@ fun QuizScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Kelime kartı
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(4.dp)
@@ -107,11 +100,10 @@ fun QuizScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Seçenekler
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(currentQuestion.options) { option ->
-                val isSelected = selectedAnswer == option.answer
-                val isCorrect = option.answer == currentQuestion.correctAnswer
+            items(currentQuestion.options) { option ->  // option tipi: String
+                val isSelected = selectedAnswer == option
+                val isCorrect = option == currentQuestion.correctAnswer
 
                 Card(
                     modifier = Modifier
@@ -119,10 +111,10 @@ fun QuizScreen(
                         .padding(vertical = 4.dp),
                     onClick = {
                         if (!showResult) {
-                            selectedAnswer = option.answer
+                            selectedAnswer = option
                             showResult = true
                             showGif = true
-                            if (option.answer == currentQuestion.correctAnswer) {
+                            if (option == currentQuestion.correctAnswer) {
                                 lastAnswerCorrect = true
                                 totalCorrect++
                                 onAnswerCorrect(currentQuestion)
@@ -146,7 +138,7 @@ fun QuizScreen(
                     )
                 ) {
                     Text(
-                        text = option.answer,
+                        text = option,
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodyLarge
                     )
@@ -154,7 +146,6 @@ fun QuizScreen(
             }
         }
 
-        // GIF animasyonu (doğru/yanlış)
         if (showGif) {
             Box(
                 modifier = Modifier
@@ -172,7 +163,6 @@ fun QuizScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // İlerleme butonu
         if (showResult) {
             Button(
                 onClick = {
@@ -189,7 +179,6 @@ fun QuizScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Skor
         Text(
             text = "Doğru: $totalCorrect / Yanlış: $totalWrong",
             style = MaterialTheme.typography.bodyMedium
@@ -215,7 +204,6 @@ fun QuizCompletedScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // GIF (tebrik)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
