@@ -1,33 +1,33 @@
 package com.example.kelimehatirlatici.quiz
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kelimehatirlatici.R
+import com.example.kelimehatirlatici.data.Question
+import com.example.kelimehatirlatici.ui.GifImage  // GifImage composable'ını import et
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
     session: QuizSession,
     memorizationThreshold: Int,
-    onAnswerCorrect: (QuizQuestion) -> Unit,
-    onAnswerWrong: (QuizQuestion) -> Unit,
-    onMarkLearned: (QuizQuestion) -> Unit,
+    onAnswerCorrect: (Question) -> Unit,
+    onAnswerWrong: (Question) -> Unit,
+    onMarkLearned: (Question) -> Unit,
     onSpeak: (String) -> Unit,
     onPlayCorrectSound: () -> Unit,
     onPlayWrongSound: () -> Unit,
@@ -35,46 +35,32 @@ fun QuizScreen(
     onToggleMute: () -> Unit,
     onBack: () -> Unit
 ) {
-    val question = session.currentQuestion
+    var selectedAnswer by remember { mutableStateOf<String?>(null) }
+    var isCorrect by remember { mutableStateOf<Boolean?>(null) }
+    var showExplanation by remember { mutableStateOf(false) }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var feedbackColor by remember { mutableStateOf(Color.Transparent) }
+    val scope = rememberCoroutineScope()
 
-    var selectedAnswers by remember(question?.word?.id) { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
-    var correctAnswerSelected by remember(question?.word?.id) { mutableStateOf(false) }
+    // ── Animasyon için state'ler ──
+    var showSuccessGif by remember { mutableStateOf(false) }
+    var showErrorGif by remember { mutableStateOf(false) }
+    var showCongratsGif by remember { mutableStateOf(false) }
 
-    var muteState by remember { mutableStateOf(isSoundMuted) }
+    val successAlpha by animateFloatAsState(
+        targetValue = if (showSuccessGif) 1f else 0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "successAlpha"
+    )
+    val errorAlpha by animateFloatAsState(
+        targetValue = if (showErrorGif) 1f else 0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "errorAlpha"
+    )
 
-    LaunchedEffect(isSoundMuted) { muteState = isSoundMuted }
-
-    LaunchedEffect(question?.word?.id) {
-        selectedAnswers = emptyMap()
-        correctAnswerSelected = false
-        if (!muteState && question != null) {
-            delay(400)
-            onSpeak(question.word.word)
-        }
-    }
-
-    LaunchedEffect(session.isRunning) {
-        while (session.isRunning && !session.isFinished) {
-            delay(1000L)
-            session.elapsedSeconds++
-        }
-    }
-
-    LaunchedEffect(correctAnswerSelected) {
-        if (correctAnswerSelected) {
-            delay(1000)
-            question?.let { q ->
-                if (q.word.quizCorrectCount + 1 >= memorizationThreshold) {
-                    onMarkLearned(q)
-                }
-            }
-            if (session.currentIndex + 1 >= session.totalQuestions) {
-                session.isFinished = true
-                session.isRunning = false
-            } else {
-                session.currentIndex++
-            }
-        }
+    // ── Quiz bittiğinde congrats göster ──
+    if (!session.isRunning && session.totalCorrect + session.totalWrong == session.totalQuestions) {
+        showCongratsGif = true
     }
 
     Scaffold(
@@ -82,157 +68,203 @@ fun QuizScreen(
             TopAppBar(
                 title = { Text("Quiz") },
                 navigationIcon = {
-                    IconButton(onClick = {
+                    TextButton(onClick = {
                         session.isRunning = false
                         onBack()
-                    }) { Icon(Icons.Default.ArrowBack, contentDescription = "Geri") }
+                    }) { Text("Geri", color = Color.White) }
+                },
+                actions = {
+                    IconButton(onClick = { onToggleMute() }) {
+                        Icon(
+                            imageVector = if (isSoundMuted) Icons.Default.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = if (isSoundMuted) "Sesi aç" else "Sesi kapa"
+                        )
+                    }
                 }
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).padding(horizontal = 16.dp).fillMaxSize()
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (session.isFinished) {
-                Spacer(modifier = Modifier.height(48.dp))
-                Text("Quiz Tamamlandı! 🎉", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("✅", fontSize = 32.sp)
-                        Text("Doğru: ${session.correctCount}", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("❌", fontSize = 32.sp)
-                        Text("Yanlış: ${session.wrongCount}", color = Color(0xFFF44336), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Süre: ${session.formattedTime}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.weight(1f))
-                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
+            if (!session.isRunning) {
+                // ── QUIZ BİTTİ ──
+                val total = session.totalCorrect + session.totalWrong
+                val correct = session.totalCorrect
+                val wrong = session.totalWrong
+                val time = session.elapsedSeconds
+                val dakika = time / 60
+                val saniye = time % 60
 
-            } else if (question == null) {
-                Text("Quiz için yeterli kelime yok.", textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
+                Text(
+                    text = "Quiz Tamamlandı!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1B5E20),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
                 ) {
-                    IconButton(onClick = {
-                        muteState = !muteState
-                        onToggleMute()
-                    }, modifier = Modifier.size(44.dp)) {
-                        Icon(
-                            imageVector = if (!muteState) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            contentDescription = if (!muteState) "Sesi kapat" else "Sesi aç",
-                            tint = if (!muteState) Color(0xFF4CAF50) else Color.Gray,
-                            modifier = Modifier.size(28.dp)
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Doğru: $correct / $total", style = MaterialTheme.typography.titleLarge, color = Color(0xFF2E7D32))
+                        Text("Yanlış: $wrong / $total", style = MaterialTheme.typography.titleLarge, color = Color(0xFFC62828))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Süre: ${dakika}d ${saniye}s",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFF1565C0)
                         )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(22.dp))
-                        Text(" ${session.correctCount}", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(20.dp))
-                        Text(" ${session.formattedTime}", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF424242))
-                    }
-                    Text("${session.currentQuestionNumber}/${session.totalQuestions}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFF44336), modifier = Modifier.size(22.dp))
-                        Text(" ${session.wrongCount}", color = Color(0xFFF44336), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                Spacer(modifier = Modifier.height(16.dp))
+                        // ── CONGRATS GIF ──
+                        if (showCongratsGif) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            GifImage(
+                                gifRes = R.raw.congrats,
+                                modifier = Modifier.size(150.dp),
+                                contentDescription = "Tebrikler"
+                            )
+                        }
 
-                Box(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFFE3F2FD))
-                        .clickable { if (!muteState) onSpeak(question.word.word) }
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Text(question.word.word, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1), textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Icon(
-                            imageVector = if (!muteState) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            contentDescription = "Seslendir",
-                            tint = if (!muteState) Color(0xFF1976D2) else Color.Gray,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                question.options.forEach { option ->
-                    val isSelectedWrong = selectedAnswers[option] == false
-                    val isSelectedCorrect = selectedAnswers[option] == true
-                    val isDisabled = correctAnswerSelected
-                    val canClick = !isDisabled && selectedAnswers[option] == null
-
-                    val bgColor = when {
-                        isSelectedCorrect -> Color(0xFFE8F5E9)
-                        isSelectedWrong -> Color(0xFFFFEBEE)
-                        else -> Color(0xFFF3E5F5)
-                    }
-                    val borderColor = when {
-                        isSelectedCorrect -> Color(0xFF4CAF50)
-                        isSelectedWrong -> Color(0xFFF44336)
-                        else -> Color(0xFFAB47BC)
-                    }
-                    val radioColor = when {
-                        isSelectedCorrect -> Color(0xFF4CAF50)
-                        isSelectedWrong -> Color(0xFFF44336)
-                        else -> Color(0xFFAB47BC)
-                    }
-
-                    Button(
-                        onClick = {
-                            if (canClick) {
-                                val isCorrect = option == question.correctAnswer
-                                selectedAnswers = selectedAnswers + (option to isCorrect)
-                                if (isCorrect) {
-                                    session.correctCount++
-                                    onAnswerCorrect(question)
-                                    onPlayCorrectSound()
-                                    correctAnswerSelected = true
-                                } else {
-                                    session.wrongCount++
-                                    onAnswerWrong(question)
-                                    onPlayWrongSound()
-                                }
-                            }
-                        },
-                        enabled = canClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = bgColor, disabledContainerColor = bgColor),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp).height(56.dp).border(2.dp, borderColor, RoundedCornerShape(14.dp)),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Box(modifier = Modifier.size(22.dp).border(2.dp, radioColor, CircleShape), contentAlignment = Alignment.Center) {
-                                    if (isSelectedCorrect || isSelectedWrong) {
-                                        Box(modifier = Modifier.size(12.dp).background(radioColor, CircleShape))
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(option, color = Color(0xFF212121), fontWeight = if (isSelectedCorrect || isSelectedWrong) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp, lineHeight = 18.sp)
-                            }
-                            if (isSelectedCorrect) Icon(Icons.Default.Check, contentDescription = "Doğru", tint = Color(0xFF4CAF50), modifier = Modifier.size(26.dp))
-                            else if (isSelectedWrong) Icon(Icons.Default.Close, contentDescription = "Yanlış", tint = Color(0xFFF44336), modifier = Modifier.size(26.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = onBack) {
+                            Text("Ana Ekrana Dön")
                         }
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
+            } else {
+                val current = session.currentQuestion
+
+                if (current != null) {
+                    // Soru ilerleme
+                    Text(
+                        text = "Soru ${session.currentQuestionIndex + 1} / ${session.totalQuestions}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF1565C0)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Doğru/Yanlış sayacı
+                    Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                        Text("✅ ${session.totalCorrect}", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                        Text("❌ ${session.totalWrong}", color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Soru kelimesi
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(current.word.word, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Anlamını seçin:", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1976D2))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Şıklar
+                    current.options.forEach { option ->
+                        val buttonColor = when {
+                            selectedAnswer == option && isCorrect == true -> Color(0xFF4CAF50)
+                            selectedAnswer == option && isCorrect == false -> Color(0xFFE53935)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        Button(
+                            onClick = {
+                                if (selectedAnswer == null) {
+                                    selectedAnswer = option
+                                    if (option == current.word.meaning) {
+                                        isCorrect = true
+                                        feedbackMessage = "Doğru! 🎉"
+                                        feedbackColor = Color(0xFF2E7D32)
+                                        onAnswerCorrect(current)
+                                        onPlayCorrectSound()
+                                        showSuccessGif = true
+                                        showErrorGif = false
+                                    } else {
+                                        isCorrect = false
+                                        feedbackMessage = "Yanlış! Doğru: ${current.word.meaning}"
+                                        feedbackColor = Color(0xFFC62828)
+                                        onAnswerWrong(current)
+                                        onPlayWrongSound()
+                                        showSuccessGif = false
+                                        showErrorGif = true
+                                    }
+                                    showExplanation = true
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+                            enabled = selectedAnswer == null
+                        ) {
+                            Text(option, color = if (selectedAnswer != null) Color.White else Color.Unspecified)
+                        }
+                    }
+
+                    // Geri bildirim
+                    if (feedbackMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(feedbackMessage!!, color = feedbackColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+
+                        // ── GIF GÖSTERİMİ (doğru/yanlış) ──
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 60.dp, max = 120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isCorrect == true && showSuccessGif) {
+                                GifImage(
+                                    gifRes = R.raw.success,
+                                    modifier = Modifier.size(100.dp),
+                                    contentDescription = "Doğru"
+                                )
+                            } else if (isCorrect == false && showErrorGif) {
+                                GifImage(
+                                    gifRes = R.raw.error,
+                                    modifier = Modifier.size(100.dp),
+                                    contentDescription = "Yanlış"
+                                )
+                            }
+                        }
+
+                        if (showExplanation) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Örnek: ${current.word.example}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF6A1B9A)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = {
+                            // Sonraki soruya geç
+                            selectedAnswer = null
+                            isCorrect = null
+                            showExplanation = false
+                            feedbackMessage = null
+                            showSuccessGif = false
+                            showErrorGif = false
+                            session.nextQuestion()
+                        }) {
+                            Text(if (session.currentQuestionIndex + 1 < session.totalQuestions) "Sonraki Soru" else "Bitir")
+                        }
+                    }
+                }
             }
         }
     }
