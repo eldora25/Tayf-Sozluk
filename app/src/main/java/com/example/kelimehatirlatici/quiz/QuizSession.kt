@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.kelimehatirlatici.quiz.Question
+
 class QuizSession {
     var questions: List<Question> = emptyList()
     var currentQuestionIndex by mutableIntStateOf(0)
@@ -13,7 +13,20 @@ class QuizSession {
     var wrongCount by mutableIntStateOf(0)
     var isFinished by mutableStateOf(false)
     var isRunning by mutableStateOf(false)
-    var elapsedTime by mutableLongStateOf(0L)
+    var elapsedTime by mutableLongStateOf(0L) // milisaniye cinsinden
+
+    // ★ QuizScreen'de kullanılan computed property'ler ★
+    val currentIndex: Int get() = currentQuestionIndex
+    val totalQuestions: Int get() = questions.size
+    val currentQuestionNumber: Int get() = currentQuestionIndex + 1
+
+    val formattedTime: String
+        get() {
+            val totalSeconds = elapsedTime / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            return String.format("%02d:%02d", minutes, seconds)
+        }
 
     val currentQuestion: Question?
         get() = if (currentQuestionIndex < questions.size) questions[currentQuestionIndex] else null
@@ -35,13 +48,5 @@ class QuizSession {
             isFinished = true
             isRunning = false
         }
-    }
-
-    fun answerCorrect() {
-        correctCount++
-    }
-
-    fun answerWrong() {
-        wrongCount++
     }
 }
