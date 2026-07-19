@@ -1,4 +1,3 @@
-
 package com.example.kelimehatirlatici.ui
 
 import android.graphics.drawable.AnimatedImageDrawable
