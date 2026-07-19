@@ -5,100 +5,68 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- Altın daire arka plan -->
+    <!-- Altın daire -->
     <path
         android:fillColor="#FFC107"
         android:pathData="M54,4 C26.4,4 4,26.4 4,54 C4,81.6 26.4,104 54,104 C81.6,104 104,81.6 104,54 C104,26.4 81.6,4 54,4 Z" />
     
-    <!-- İç halka (koyu altın) -->
+    <!-- İç halka -->
     <path
         android:fillColor="#FFB300"
-        android:pathData="M54,10 C29.7,10 10,29.7 10,54 C10,78.3 29.7,98 54,98 C78.3,98 98,78.3 98,54 C98,29.7 78.3,10 54,10 Z" />
+        android:pathData="M54,12 C30.8,12 12,30.8 12,54 C12,77.2 30.8,96 54,96 C77.2,96 96,77.2 96,54 C96,30.8 77.2,12 54,12 Z" />
     
-    <!-- Kitap - sol sayfa (mavi) -->
+    <!-- Açık kitap - sol sayfa (mavi) -->
     <path
         android:fillColor="#42A5F5"
-        android:pathData="M26,72 L54,88 L54,58 L26,42 Z" />
+        android:pathData="M26,68 L54,84 L54,56 L26,40 Z" />
     
-    <!-- Kitap - sağ sayfa (turuncu) -->
+    <!-- Açık kitap - sağ sayfa (turuncu) -->
     <path
         android:fillColor="#FFA726"
-        android:pathData="M82,72 L54,88 L54,58 L82,42 Z" />
+        android:pathData="M82,68 L54,84 L54,56 L82,40 Z" />
     
     <!-- Kitap sırtı -->
     <path
         android:fillColor="#37474F"
-        android:pathData="M53,58 L53,88 L55,88 L55,58 Z" />
+        android:pathData="M53,56 L53,84 L55,84 L55,56 Z" />
     
-    <!-- Sayfa çizgileri - sol -->
-    <path
-        android:fillColor="#1E88E5"
-        android:strokeWidth="1.5"
-        android:pathData="M30,48 L52,65" />
-    <path
-        android:fillColor="#1E88E5"
-        android:strokeWidth="1.5"
-        android:pathData="M34,56 L52,73" />
-    
-    <!-- Sayfa çizgileri - sağ -->
-    <path
-        android:fillColor="#EF6C00"
-        android:strokeWidth="1.5"
-        android:pathData="M78,48 L56,65" />
-    <path
-        android:fillColor="#EF6C00"
-        android:strokeWidth="1.5"
-        android:pathData="M74,56 L56,73" />
-    
-    <!-- Beyin (açık mor) -->
+    <!-- Beyin (mor) -->
     <path
         android:fillColor="#CE93D8"
-        android:pathData="M36,44 C36,26 44,18 54,18 C64,18 72,26 72,44 C72,52 68,58 64,62 L64,76 C64,80 61,84 57,84 L51,84 C47,84 44,80 44,76 L44,62 C40,58 36,52 36,44 Z" />
+        android:pathData="M38,44 C38,28 46,20 54,20 C62,20 70,28 70,44 C70,52 66,58 62,62 L62,74 C62,78 59,82 55,82 L53,82 C49,82 46,78 46,74 L46,62 C42,58 38,52 38,44 Z" />
     
-    <!-- Beyin orta bölünme -->
-    <path
-        android:fillColor="#AB47BC"
-        android:pathData="M52,20 L52,82"
-        android:strokeWidth="1.5" />
-    <path
-        android:fillColor="#AB47BC"
-        android:pathData="M56,20 L56,82"
-        android:strokeWidth="1.5" />
-    
-    <!-- Beyin kıvrım detayları - sol -->
+    <!-- Beyin orta çizgisi -->
     <path
         android:fillColor="#AB47BC"
         android:strokeWidth="1.5"
+        android:pathData="M53,20 L53,82" />
+    
+    <!-- Beyin kıvrım çizgileri - sol -->
+    <path
+        android:fillColor="#AB47BC"
+        android:strokeWidth="1"
         android:pathData="M40,32 Q46,28 50,34" />
     <path
         android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:pathData="M38,44 Q46,40 50,46" />
     <path
         android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:pathData="M40,56 Q46,52 50,58" />
-    <path
-        android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
-        android:pathData="M43,66 Q48,63 50,68" />
     
-    <!-- Beyin kıvrım detayları - sağ -->
+    <!-- Beyin kıvrım çizgileri - sağ -->
     <path
         android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:pathData="M68,32 Q62,28 58,34" />
     <path
         android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:pathData="M70,44 Q62,40 58,46" />
     <path
         android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1"
         android:pathData="M68,56 Q62,52 58,58" />
-    <path
-        android:fillColor="#AB47BC"
-        android:strokeWidth="1.5"
-        android:pathData="M65,66 Q60,63 58,68" />
     
 </vector>
