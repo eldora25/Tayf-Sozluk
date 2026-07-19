@@ -3,51 +3,45 @@ package com.example.kelimehatirlatici.quiz
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 class QuizSession {
-    var questions by mutableStateOf<List<QuizQuestion>>(emptyList())
-    var currentIndex by mutableIntStateOf(0)
+    var questions: List<Question> = emptyList()
+    var currentQuestionIndex by mutableIntStateOf(0)
     var correctCount by mutableIntStateOf(0)
     var wrongCount by mutableIntStateOf(0)
-    var elapsedSeconds by mutableLongStateOf(0L)
-    var isRunning by mutableStateOf(false)
     var isFinished by mutableStateOf(false)
-    var totalQuestions by mutableIntStateOf(0)
+    var isRunning by mutableStateOf(false)
+    var elapsedTime by mutableLongStateOf(0L)
 
-    fun reset() {
-        questions = emptyList()
-        currentIndex = 0
+    val currentQuestion: Question?
+        get() = if (currentQuestionIndex < questions.size) questions[currentQuestionIndex] else null
+
+    fun start(questions: List<Question>, count: Int) {
+        this.questions = questions.shuffled().take(count)
+        currentQuestionIndex = 0
         correctCount = 0
         wrongCount = 0
-        elapsedSeconds = 0L
-        isRunning = false
         isFinished = false
-        totalQuestions = 0
+        isRunning = true
+        elapsedTime = 0L
     }
 
-    fun start(questionList: List<QuizQuestion>, count: Int) {
-        reset()
-        questions = questionList.take(count)
-        totalQuestions = questions.size
-        if (questions.isNotEmpty()) {
-            isRunning = true
+    fun nextQuestion() {
+        if (currentQuestionIndex < questions.size - 1) {
+            currentQuestionIndex++
+        } else {
+            isFinished = true
+            isRunning = false
         }
     }
 
-    val currentQuestion: QuizQuestion?
-        get() = questions.getOrNull(currentIndex)
+    fun answerCorrect() {
+        correctCount++
+    }
 
-    val currentQuestionNumber: Int
-        get() = (currentIndex + 1).coerceAtMost(totalQuestions)
-
-    val formattedTime: String
-        get() {
-            val h = elapsedSeconds / 3600
-            val m = (elapsedSeconds % 3600) / 60
-            val s = elapsedSeconds % 60
-            return String.format("%02d:%02d:%02d", h, m, s)
-        }
+    fun answerWrong() {
+        wrongCount++
+    }
 }
