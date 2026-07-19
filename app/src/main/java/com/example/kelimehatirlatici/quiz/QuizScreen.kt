@@ -27,9 +27,9 @@ import kotlinx.coroutines.delay
 fun QuizScreen(
     session: QuizSession,
     memorizationThreshold: Int,
-    onAnswerCorrect: (QuizQuestion) -> Unit,
-    onAnswerWrong: (QuizQuestion) -> Unit,
-    onMarkLearned: (QuizQuestion) -> Unit,
+    onAnswerCorrect: (Question) -> Unit,       // QuizQuestion → Question
+    onAnswerWrong: (Question) -> Unit,         // QuizQuestion → Question
+    onMarkLearned: (Question) -> Unit,         // QuizQuestion → Question
     onSpeak: (String) -> Unit,
     onPlayCorrectSound: () -> Unit,
     onPlayWrongSound: () -> Unit,
@@ -62,18 +62,18 @@ fun QuizScreen(
         }
     }
 
-    // Zamanlayıcı
+    // Zamanlayıcı – milisaniye ekle
     LaunchedEffect(session.isRunning) {
         while (session.isRunning && !session.isFinished) {
             delay(1000L)
-            session.elapsedSeconds++
+            session.elapsedTime += 1000L
         }
     }
 
-    // Doğru cevap seçildiğinde: önce GIF göster, sonra 500ms bekle, ardından otomatik geçiş
+    // Doğru cevap seçildiğinde: 500ms GIF göster, sonra otomatik geçiş
     LaunchedEffect(correctAnswerSelected) {
         if (correctAnswerSelected) {
-            delay(500) // 500ms gecikme (GIF'in görünmesi için yeterli)
+            delay(500) // GIF'in görünmesi için yeterli
             question?.let { q ->
                 if (q.word.quizCorrectCount + 1 >= memorizationThreshold) {
                     onMarkLearned(q)
@@ -83,7 +83,7 @@ fun QuizScreen(
                 session.isFinished = true
                 session.isRunning = false
             } else {
-                session.currentIndex++
+                session.currentIndex = session.currentIndex + 1 // aynı: currentQuestionIndex++
             }
         }
     }
@@ -150,7 +150,7 @@ fun QuizScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // ★ TEBRİK GIFİ ★
+                // ★ TEBRİK GIF’İ ★
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(
                     modifier = Modifier
