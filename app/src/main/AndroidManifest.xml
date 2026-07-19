@@ -6,10 +6,10 @@
     <application
         android:allowBackup="true"
         android:label="Kelime Hatırlatıcı"
-        android:theme="@style/Theme.KelimeHatirlatici"
         android:supportsRtl="true"
-        android:icon="@drawable/ic_launcher"        <!-- BURAYA DİKKAT -->
-        android:roundIcon="@drawable/ic_launcher_round"> <!-- BURAYA DİKKAT -->
+        android:theme="@style/Theme.KelimeHatirlatici"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
 
         <activity
             android:name=".MainActivity"
