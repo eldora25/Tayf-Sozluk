@@ -7,9 +7,7 @@
         android:allowBackup="true"
         android:label="Kelime Hatırlatıcı"
         android:supportsRtl="true"
-        android:theme="@style/Theme.KelimeHatirlatici"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher_round">
+        android:theme="@style/Theme.KelimeHatirlatici">
 
         <activity
             android:name=".MainActivity"
