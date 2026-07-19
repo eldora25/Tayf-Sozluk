@@ -1,4 +1,5 @@
 package com.example.kelimehatirlatici.ui
+import com.example.kelimehatirlatici.ui.GifImage
 
 import android.graphics.drawable.AnimatedImageDrawable
 import android.os.Build
