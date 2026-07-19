@@ -14,8 +14,8 @@ import com.example.kelimehatirlatici.importer.LingoesImportHelper
 import com.example.kelimehatirlatici.packs.WordPack
 import com.example.kelimehatirlatici.packs.WordPackReader
 import com.example.kelimehatirlatici.quiz.QuizGenerator
-import com.example.kelimehatirlatici.quiz.QuizSession
 import com.example.kelimehatirlatici.quiz.QuizScreen
+import com.example.kelimehatirlatici.quiz.QuizSession
 import com.example.kelimehatirlatici.ui.*
 import kotlinx.coroutines.launch
 
@@ -31,7 +31,6 @@ fun AppScreen(
     val scope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("learning") }
 
-    // ── Seçimleri SharedPreferences'den oku ──
     var selectedLibrary by remember { mutableStateOf(settings.selectedLibrary) }
     var selectedLevel by remember { mutableStateOf(settings.selectedLevel) }
 
@@ -75,12 +74,10 @@ fun AppScreen(
     }
 
     LaunchedEffect(selectedLibrary, selectedLevel) { refreshData() }
-
-    // ── Seçim değişince SharedPreferences'e kaydet ──
     LaunchedEffect(selectedLibrary) { settings.selectedLibrary = selectedLibrary }
     LaunchedEffect(selectedLevel) { settings.selectedLevel = selectedLevel }
 
-    // ──── DOSYA SEÇİCİLER ────
+    // Dosya seçiciler
     val csvUri = remember { mutableStateOf<Uri?>(null) }
     val excelUri = remember { mutableStateOf<Uri?>(null) }
     val lingoesUri = remember { mutableStateOf<Uri?>(null) }
@@ -97,6 +94,7 @@ fun AppScreen(
             currentScreen = "learning"
         }
     }
+
     val excelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         excelUri.value = uri
         if (uri != null) scope.launch {
@@ -109,6 +107,7 @@ fun AppScreen(
             currentScreen = "learning"
         }
     }
+
     val lingoesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         lingoesUri.value = uri
         if (uri != null) scope.launch {
@@ -122,7 +121,6 @@ fun AppScreen(
         }
     }
 
-    // ──── DIŞA AKTARMA ────
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) scope.launch {
             try {
@@ -138,7 +136,6 @@ fun AppScreen(
         }
     }
 
-    // ──── EKRAN YÖNLENDİRME ────
     when (currentScreen) {
         "learning" -> LearningCardScreen(
             word = currentWord, selectedLibrary = selectedLibrary, selectedLevel = selectedLevel,
@@ -157,7 +154,6 @@ fun AppScreen(
                     val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
                     val questions = quizGenerator.generateQuestions(unlearned)
                     quizSession.start(questions, quizQuestionCount)
-                    quizSession.isRunning = true
                     currentScreen = "quiz"
                 }
             },
