@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-
+import com.example.kelimehatirlatici.quiz.Question
 @Composable
 fun GifImage(
     @DrawableRes gifRes: Int,
