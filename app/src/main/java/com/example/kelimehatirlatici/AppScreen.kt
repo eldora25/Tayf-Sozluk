@@ -13,12 +13,13 @@ import com.example.kelimehatirlatici.importer.ExcelImportHelper
 import com.example.kelimehatirlatici.importer.LingoesImportHelper
 import com.example.kelimehatirlatici.packs.WordPack
 import com.example.kelimehatirlatici.packs.WordPackReader
+import com.example.kelimehatirlatici.quiz.Question
 import com.example.kelimehatirlatici.quiz.QuizGenerator
 import com.example.kelimehatirlatici.quiz.QuizScreen
 import com.example.kelimehatirlatici.quiz.QuizSession
 import com.example.kelimehatirlatici.ui.*
 import kotlinx.coroutines.launch
-import com.example.kelimehatirlatici.quiz.Question
+
 @Composable
 fun AppScreen(
     repository: WordRepository,
@@ -138,10 +139,23 @@ fun AppScreen(
 
     when (currentScreen) {
         "learning" -> LearningCardScreen(
-            word = currentWord, selectedLibrary = selectedLibrary, selectedLevel = selectedLevel,
-            dailyGoal = dailyGoal, totalWordCount = totalWordCount,
-            onKnownClick = { scope.launch { currentWord?.let { repository.markKnown(it); repository.increaseTodayCompleted() }; refreshData() } },
-            onWrongClick = { scope.launch { currentWord?.let { repository.markWrong(it) }; refreshData() } },
+            word = currentWord,
+            selectedLibrary = selectedLibrary,
+            selectedLevel = selectedLevel,
+            dailyGoal = dailyGoal,
+            totalWordCount = totalWordCount,
+            onKnownClick = {
+                scope.launch {
+                    currentWord?.let { repository.markKnown(it); repository.increaseTodayCompleted() }
+                    refreshData()
+                }
+            },
+            onWrongClick = {
+                scope.launch {
+                    currentWord?.let { repository.markWrong(it) }
+                    refreshData()
+                }
+            },
             onSpeakClick = onSpeak,
             onAddWordClick = { refreshData(); currentScreen = "add" },
             onWordListClick = { refreshData(); currentScreen = "list" },
@@ -151,18 +165,30 @@ fun AppScreen(
             onStatsClick = { refreshData(); currentScreen = "stats" },
             onQuizClick = {
                 scope.launch {
-        val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
-        val generated = quizGenerator.generateQuestions(unlearned) // List<QuizQuestion>
-        val questions = generated.map { q ->
-            Question(word = q.word, options = q.options, correctAnswer = q.correctAnswer)
-        }
-        quizSession.start(questions, quizQuestionCount)
-        currentScreen = "quiz"
-    }
-},
+                    val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
+                    val quizQuestions = quizGenerator.generateQuestions(unlearned) // List<QuizQuestion>
+                    val questions = quizQuestions.map { q ->
+                        Question(
+                            word = q.word,
+                            options = q.options,
+                            correctAnswer = q.correctAnswer
+                        )
+                    }
+                    quizSession.start(questions, quizQuestionCount)
+                    currentScreen = "quiz"
+                }
+            },
             onImportClick = { currentScreen = "import" },
-            onPacksClick = { packs = WordPackReader.readAllPacks(context); currentScreen = "packs" },
-            onWrongWordsClick = { scope.launch { wrongWords = repository.getWrongWords(); currentScreen = "wrong" } },
+            onPacksClick = {
+                packs = WordPackReader.readAllPacks(context)
+                currentScreen = "packs"
+            },
+            onWrongWordsClick = {
+                scope.launch {
+                    wrongWords = repository.getWrongWords()
+                    currentScreen = "wrong"
+                }
+            },
             onSettingsClick = { currentScreen = "settings" }
         )
 
@@ -197,8 +223,12 @@ fun AppScreen(
         )
 
         "library" -> LibrarySelectScreen(
-            libraryInfoList = libraryInfoList, selectedLibrary = selectedLibrary,
-            onLibrarySelected = { selectedLibrary = it; currentScreen = "learning" },
+            libraryInfoList = libraryInfoList,
+            selectedLibrary = selectedLibrary,
+            onLibrarySelected = {
+                selectedLibrary = it
+                currentScreen = "learning"
+            },
             onManageLibraries = { refreshData(); currentScreen = "manageLibraries" },
             onBack = { currentScreen = "learning" }
         )
@@ -228,46 +258,61 @@ fun AppScreen(
 
         "level" -> LevelSelectScreen(
             selectedLevel = selectedLevel,
-            onLevelSelected = { selectedLevel = it; currentScreen = "learning" },
+            onLevelSelected = {
+                selectedLevel = it
+                currentScreen = "learning"
+            },
             onBack = { currentScreen = "learning" }
         )
 
         "goal" -> GoalScreen(
             currentGoal = dailyGoal?.targetCount ?: 10,
             completed = dailyGoal?.completedCount ?: 0,
-            onSaveGoal = { scope.launch { repository.setTodayGoal(it); refreshData(); currentScreen = "learning" } },
+            onSaveGoal = {
+                scope.launch {
+                    repository.setTodayGoal(it)
+                    refreshData()
+                    currentScreen = "learning"
+                }
+            },
             onBack = { currentScreen = "learning" }
         )
 
         "stats" -> StatsScreen(
-            libraryInfoList = libraryInfoList, totalLibraries = totalLibraries,
-            totalWords = totalWordsOverall, totalLearned = totalLearnedOverall,
+            libraryInfoList = libraryInfoList,
+            totalLibraries = totalLibraries,
+            totalWords = totalWordsOverall,
+            totalLearned = totalLearnedOverall,
             onBack = { currentScreen = "learning" }
         )
 
         "quiz" -> QuizScreen(
             session = quizSession,
             memorizationThreshold = memorizationThreshold,
-            onAnswerCorrect = { q ->
+            onAnswerCorrect = { question: Question ->
                 scope.launch {
-                    repository.incrementQuizCorrect(q.word)
+                    repository.incrementQuizCorrect(question.word)
                     repository.recordQuizStat(true)
                 }
             },
-            onAnswerWrong = { q ->
+            onAnswerWrong = { question: Question ->
                 scope.launch {
-                    repository.recordQuizWrong(q.word)
+                    repository.recordQuizWrong(question.word)
                     repository.recordQuizStat(false)
                 }
             },
-            onMarkLearned = { q ->
-                scope.launch { repository.markAsLearned(q.word) }
+            onMarkLearned = { question: Question ->
+                scope.launch {
+                    repository.markAsLearned(question.word)
+                }
             },
             onSpeak = onSpeak,
             onPlayCorrectSound = { soundManager.playCorrect() },
             onPlayWrongSound = { soundManager.playWrong() },
             isSoundMuted = soundManager.isMuted,
-            onToggleMute = { soundManager.isMuted = !soundManager.isMuted },
+            onToggleMute = {
+                soundManager.isMuted = !soundManager.isMuted
+            },
             onBack = {
                 quizSession.isRunning = false
                 currentScreen = "learning"
@@ -284,28 +329,74 @@ fun AppScreen(
 
         "packs" -> WordPackScreen(
             packs = packs,
-            onInstallPack = { pack -> scope.launch {
-                repository.addWords(pack.words.map { Word(word = it.word, meaning = it.meaning, example = it.example, library = pack.name, level = pack.level) })
-                selectedLibrary = pack.name; selectedLevel = pack.level; refreshData(); currentScreen = "learning"
-            }},
-            onInstallAll = { scope.launch {
-                packs.forEach { pack -> repository.addWords(pack.words.map { w -> Word(word = w.word, meaning = w.meaning, example = w.example, library = pack.name, level = pack.level) }) }
-                refreshData(); currentScreen = "learning"
-            }},
+            onInstallPack = { pack ->
+                scope.launch {
+                    repository.addWords(
+                        pack.words.map {
+                            Word(
+                                word = it.word,
+                                meaning = it.meaning,
+                                example = it.example,
+                                library = pack.name,
+                                level = pack.level
+                            )
+                        }
+                    )
+                    selectedLibrary = pack.name
+                    selectedLevel = pack.level
+                    refreshData()
+                    currentScreen = "learning"
+                }
+            },
+            onInstallAll = {
+                scope.launch {
+                    packs.forEach { pack ->
+                        repository.addWords(
+                            pack.words.map {
+                                Word(
+                                    word = it.word,
+                                    meaning = it.meaning,
+                                    example = it.example,
+                                    library = pack.name,
+                                    level = pack.level
+                                )
+                            }
+                        )
+                    }
+                    refreshData()
+                    currentScreen = "learning"
+                }
+            },
             onBack = { currentScreen = "learning" }
         )
 
-        "wrong" -> WrongWordsScreen(words = wrongWords, onBack = { currentScreen = "learning" })
+        "wrong" -> WrongWordsScreen(
+            words = wrongWords,
+            onBack = { currentScreen = "learning" }
+        )
 
         "settings" -> SettingsScreen(
             quizQuestionCount = quizQuestionCount,
             randomOrder = randomOrder,
             memorizationThreshold = memorizationThreshold,
             darkMode = darkMode,
-            onQuizQuestionCountChange = { quizQuestionCount = it; settings.quizQuestionCount = it },
-            onRandomOrderChange = { randomOrder = it; settings.randomOrder = it },
-            onMemorizationThresholdChange = { memorizationThreshold = it; settings.memorizationThreshold = it },
-            onDarkModeChange = { darkMode = it; settings.darkMode = it; onDarkModeChange(it) },
+            onQuizQuestionCountChange = {
+                quizQuestionCount = it
+                settings.quizQuestionCount = it
+            },
+            onRandomOrderChange = {
+                randomOrder = it
+                settings.randomOrder = it
+            },
+            onMemorizationThresholdChange = {
+                memorizationThreshold = it
+                settings.memorizationThreshold = it
+            },
+            onDarkModeChange = {
+                darkMode = it
+                settings.darkMode = it
+                onDarkModeChange(it)
+            },
             onBack = { currentScreen = "learning" }
         )
     }
