@@ -18,7 +18,7 @@ import com.example.kelimehatirlatici.quiz.QuizScreen
 import com.example.kelimehatirlatici.quiz.QuizSession
 import com.example.kelimehatirlatici.ui.*
 import kotlinx.coroutines.launch
-
+import com.example.kelimehatirlatici.quiz.Question
 @Composable
 fun AppScreen(
     repository: WordRepository,
