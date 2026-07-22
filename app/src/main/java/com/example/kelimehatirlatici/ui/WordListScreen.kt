@@ -17,12 +17,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.Word
 
-// ★ Yeni: ||| ile ayrılmış çoklu değerleri listeye çevirir
+// Çoklu değerleri listeye çevirir
 private fun parseMultiValue(text: String): List<String> {
     return text.split("|||").map { it.trim() }.filter { it.isNotBlank() }
 }
 
-// ★ Yeni: Çoklu anlamları alt alta görüntüleme
+// Çoklu anlamları alt alta görüntüleme
 private fun formatMultiMeanings(meaning: String): String {
     val parts = parseMultiValue(meaning)
     return if (parts.size > 1) {
@@ -32,7 +32,7 @@ private fun formatMultiMeanings(meaning: String): String {
     }
 }
 
-// ★ Yeni: Çoklu örnekleri alt alta görüntüleme
+// Çoklu örnekleri alt alta görüntüleme
 private fun formatMultiExamples(example: String): String {
     val parts = parseMultiValue(example)
     return if (parts.size > 1) {
@@ -64,7 +64,7 @@ fun WordListScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Kelime Listesi (${words.size})") }) }
+        topBar = { TopAppBar(title = { Text("Kelime Listesi (${words.size})" }) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             if (words.isEmpty()) {
@@ -81,14 +81,14 @@ fun WordListScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(w.word, fontWeight = FontWeight.Bold)
 
-                                    // ★ Değişiklik: Çoklu anlamları alt alta • ile göster
+                                    // Çoklu anlamları alt alta • ile göster
                                     Text(
                                         text = formatMultiMeanings(w.meaning),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                     )
 
-                                    // ★ Değişiklik: Çoklu örnekleri alt alta • ile göster
+                                    // Çoklu örnekleri alt alta • ile göster
                                     if (w.example.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
@@ -105,7 +105,7 @@ fun WordListScreen(
                                         color = Color(0xFF1976D2)
                                     )
                                 }
-                                // Düzenleme butonu
+                                // ★ ÇARK İKONU - Düzenle/Sil
                                 IconButton(onClick = {
                                     editingWord = w
                                     editWordText = w.word
@@ -116,7 +116,11 @@ fun WordListScreen(
                                     editMessage = ""
                                     showEditSuccess = false
                                 }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Düzenle/Sil",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
@@ -129,7 +133,7 @@ fun WordListScreen(
     }
 
     // ════════════════════════════════════════════════════════════
-    // DÜZENLEME DİALOGU (Güncelle / Sil seçenekli)
+    // DÜZENLEME / SİL DİALOGU
     // ════════════════════════════════════════════════════════════
     if (editingWord != null) {
         AlertDialog(
@@ -152,7 +156,6 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ★ Değişiklik: Çoklu anlam desteği açıklaması
                     OutlinedTextField(
                         value = editMeaningText,
                         onValueChange = { editMeaningText = it },
@@ -164,7 +167,6 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ★ Değişiklik: Çoklu örnek desteği açıklaması
                     OutlinedTextField(
                         value = editExampleText,
                         onValueChange = { editExampleText = it },
