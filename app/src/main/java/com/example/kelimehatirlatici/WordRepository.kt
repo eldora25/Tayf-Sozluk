@@ -152,7 +152,7 @@ class WordRepository(private val wordDao: WordDao) {
     private fun today() = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
     // ═══════════════════════════════════════════════════════════════════════
-    // YENİ: KELİME DÜZENLEME METODLARI
+    // KELİME DÜZENLEME / SİLME METODLARI
     // ═══════════════════════════════════════════════════════════════════════
 
     suspend fun getWordById(id: Int): Word? = wordDao.getWordById(id)
@@ -194,5 +194,10 @@ class WordRepository(private val wordDao: WordDao) {
             newLevel = word.level,
             newLibrary = targetLibrary
         )
+    }
+
+    /** ID'ye göre kelimeyi tamamen sil */
+    suspend fun deleteWordById(id: Int) {
+        wordDao.deleteWordById(id)
     }
 }
