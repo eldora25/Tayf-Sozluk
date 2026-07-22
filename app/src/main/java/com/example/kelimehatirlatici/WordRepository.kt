@@ -17,7 +17,6 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun addWords(words: List<Word>) = wordDao.insertWords(words)
 
-    /** Kelime eklemeden önce aynı kütüphanede var mı kontrol et. true = zaten var */
     suspend fun isWordDuplicate(library: String, word: String): Boolean {
         return wordDao.countByLibraryAndWord(library, word) > 0
     }
@@ -71,7 +70,6 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.updateWord(word.copy(quizCorrectCount = word.quizCorrectCount + 1, lastReviewedAt = System.currentTimeMillis()))
     }
 
-    /** Kelimeyi öğrenilmiş olarak işaretle VE "✅ Öğrenilmiş" kütüphanesine kopyala */
     suspend fun markAsLearned(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true))
         val learnedLib = "✅ Öğrenilmiş"
@@ -126,7 +124,6 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun getTotalLearnedCount(): Int = getLibraryInfoList().sumOf { it.learnedCount }
 
-    /** Dışa aktarma için kütüphanedeki tüm kelimeleri CSV string olarak döndür */
     suspend fun exportLibraryAsCsv(library: String): String {
         val words = wordDao.getWordsByLibrary(library)
         val sb = StringBuilder()
@@ -140,7 +137,6 @@ class WordRepository(private val wordDao: WordDao) {
         return sb.toString()
     }
 
-    /** Kelime güncelleme (düzenleme dialog'u için) */
     suspend fun updateWordDetails(id: Int, newWord: String, newMeaning: String, newExample: String) {
         val existing = wordDao.getWordById(id) ?: return
         wordDao.updateWord(existing.copy(word = newWord, meaning = newMeaning, example = newExample))
@@ -159,10 +155,8 @@ class WordRepository(private val wordDao: WordDao) {
     // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /** ID'ye göre kelime getir */
     suspend fun getWordById(id: Int): Word? = wordDao.getWordById(id)
 
-    /** Kelimenin tüm alanlarını güncelle (word, meaning, example, level, library) */
     suspend fun updateWordFull(
         id: Int,
         newWord: String,
@@ -174,7 +168,6 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.updateWordFull(id, newWord, newMeaning, newExample, newLevel, newLibrary)
     }
 
-    /** Kelimeyi başka bir kütüphaneye kopyala. false = zaten var */
     suspend fun copyWordToLibrary(word: Word, targetLibrary: String): Boolean {
         if (wordDao.countByLibraryAndWord(targetLibrary, word.word) > 0) {
             return false
@@ -192,7 +185,6 @@ class WordRepository(private val wordDao: WordDao) {
         return true
     }
 
-    /** Kelimeyi başka bir kütüphaneye taşı */
     suspend fun moveWordToLibrary(word: Word, targetLibrary: String) {
         wordDao.updateWordFull(
             id = word.id,
