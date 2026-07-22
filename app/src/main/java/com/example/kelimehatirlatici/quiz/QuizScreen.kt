@@ -5,34 +5,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kelimehatirlatici.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Yardımcı: ||| ile ayrılmış çoklu anlamdan sadece ilkini al.
- * Quiz'de anlam gösterirken kullanılır.
- */
+// ★ Yeni: Çoklu anlamdan sadece ilkini al
 private fun getFirstMeaning(meaning: String): String {
     return meaning.split("|||").firstOrNull()?.trim()?.ifBlank { meaning } ?: meaning
 }
 
-/**
- * Yardımcı: ||| ile ayrılmış çoklu örnek cümleden sadece ilkini al.
- * Quiz'de örnek gösterirken kullanılır.
- */
+// ★ Yeni: Çoklu örnek cümleden sadece ilkini al
 private fun getFirstExample(example: String): String {
     return example.split("|||").firstOrNull()?.trim()?.ifBlank { example } ?: example
 }
@@ -55,7 +49,6 @@ fun QuizScreen(
 ) {
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isCorrect by remember { mutableStateOf<Boolean?>(null) }
-    var showResult by remember { mutableStateOf(false) }
     var showAnswer by remember { mutableStateOf(false) }
     var showMarkAsLearnedDialog by remember { mutableStateOf(false) }
     var elapsedSeconds by remember { mutableIntStateOf(0) }
@@ -68,7 +61,6 @@ fun QuizScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Quiz'i başlat
     LaunchedEffect(session.questions) {
         if (session.questions.isNotEmpty()) {
             currentQuestion = session.questions.getOrNull(currentIndex)
@@ -80,9 +72,8 @@ fun QuizScreen(
         elapsedSeconds = 0
     }
 
-    // Zamanlayıcı
-    LaunchedEffect(showResult) {
-        if (!showResult && !quizFinished) {
+    LaunchedEffect(showAnswer) {
+        if (!showAnswer && !quizFinished) {
             while (true) {
                 delay(1000)
                 elapsedSeconds++
@@ -111,19 +102,12 @@ fun QuizScreen(
                         formatTime(elapsedSeconds),
                         modifier = Modifier.padding(end = 8.dp)
                     )
-                    if (isSoundMuted) {
-                        IconButton(onClick = onToggleMute) {
-                            Icon(
-                                painterResource(R.drawable.sound_off),
-                                contentDescription = "Sesi Aç"
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = onToggleMute) {
-                            Icon(
-                                painterResource(R.drawable.sound_on),
-                                contentDescription = "Sesi Kapa"
-                            )
+                    // ★ Düzeltme: R.drawable.sound_off/sound_on yerine Material Icon kullan
+                    IconButton(onClick = onToggleMute) {
+                        if (isSoundMuted) {
+                            Icon(Icons.Default.VolumeOff, contentDescription = "Sesi Aç")
+                        } else {
+                            Icon(Icons.Default.VolumeUp, contentDescription = "Sesi Kapa")
                         }
                     }
                 }
@@ -136,9 +120,7 @@ fun QuizScreen(
                 .padding(padding)
         ) {
             if (quizFinished) {
-                // ══════════════════════════════════════════════════
-                // QUIZ BİTTİ EKRANI
-                // ══════════════════════════════════════════════════
+                // ═══ QUIZ BİTTİ EKRANI ═══
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -215,11 +197,7 @@ fun QuizScreen(
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "%$pct Başarı",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Text("%$pct Başarı", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -233,26 +211,19 @@ fun QuizScreen(
                             wrongCount = 0
                             quizFinished = false
                             elapsedSeconds = 0
-                            showResult = false
+                            showAnswer = false
                             selectedAnswer = null
                             isCorrect = null
-                            showAnswer = false
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("🔄 Tekrar Dene")
-                    }
+                    ) { Text("🔄 Tekrar Dene") }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Ana Sayfaya Dön")
-                    }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Ana Sayfaya Dön") }
                 }
             } else if (currentQuestion != null) {
-                // ══════════════════════════════════════════════════
-                // SORU EKRANI
-                // ══════════════════════════════════════════════════
+                // ═══ SORU EKRANI ═══
                 val question = currentQuestion!!
 
                 Column(
@@ -262,7 +233,6 @@ fun QuizScreen(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // İlerleme çubuğu
                     LinearProgressIndicator(
                         progress = { (currentIndex + 1).toFloat() / session.questions.size },
                         modifier = Modifier
@@ -274,7 +244,6 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Puan
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -282,9 +251,7 @@ fun QuizScreen(
                         )
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Text("✅ $correctCount", fontWeight = FontWeight.Bold)
@@ -294,7 +261,7 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Kelime kartı
+                    // Kelime kartı - anlamı göster, kelimeyi sor
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -313,9 +280,8 @@ fun QuizScreen(
 
                             // ★ Değişiklik: Çoklu örnek cümleden sadece ilkini göster
                             if (question.word.example.isNotBlank()) {
-                                val firstExample = getFirstExample(question.word.example)
                                 Text(
-                                    "\"$firstExample\"",
+                                    "\"${getFirstExample(question.word.example)}\"",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     modifier = Modifier.padding(bottom = 16.dp)
@@ -323,8 +289,7 @@ fun QuizScreen(
                             }
 
                             Text(
-                                // Sadece ilk anlamı sor
-                                getFirstMeaning(question.word.meaning),
+                                "?",
                                 fontSize = 48.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -342,14 +307,11 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Konuşma butonu (kelimeyi okumak için)
                     if (question.word.word.isNotBlank()) {
                         OutlinedButton(
                             onClick = { onSpeak(question.word.word) },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("🔊 ${question.word.word}")
-                        }
+                        ) { Text("🔊 ${question.word.word}") }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -361,7 +323,6 @@ fun QuizScreen(
                             showAnswer && option == selectedAnswer && isCorrect == false -> Color(0xFFD32F2F)
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         }
-
                         val textColor = when {
                             showAnswer && option == question.correctAnswer -> Color.White
                             showAnswer && option == selectedAnswer && isCorrect == false -> Color.White
@@ -378,7 +339,6 @@ fun QuizScreen(
                                     if (isCorrect == true) {
                                         onPlayCorrectSound()
                                         onAnswerCorrect(question)
-                                        // Memorization threshold kontrolü
                                         if (question.word.quizCorrectCount + 1 >= memorizationThreshold) {
                                             showMarkAsLearnedDialog = true
                                         }
@@ -387,7 +347,6 @@ fun QuizScreen(
                                         onAnswerWrong(question)
                                     }
 
-                                    // 1.5 saniye sonra sonraki soruya geç
                                     coroutineScope.launch {
                                         delay(1500)
                                         if (isCorrect == true) correctCount++ else wrongCount++
@@ -399,7 +358,6 @@ fun QuizScreen(
                                             showAnswer = false
                                             selectedAnswer = null
                                             isCorrect = null
-                                            // Quiz session'ı güncelle
                                             session.correctCount = correctCount
                                             session.wrongCount = wrongCount
                                         } else {
@@ -410,44 +368,33 @@ fun QuizScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = buttonColor,
                                 contentColor = textColor
                             ),
                             enabled = !showAnswer
-                        ) {
-                            Text(option, fontSize = 16.sp)
-                        }
+                        ) { Text(option, fontSize = 16.sp) }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Cevabı göster butonu
                     if (!showAnswer) {
                         OutlinedButton(
                             onClick = {
                                 showAnswer = true
-                                showResult = true
                                 onPlayWrongSound()
                                 onAnswerWrong(question)
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Cevabı Göster")
-                        }
+                        ) { Text("Cevabı Göster") }
                     }
                 }
             } else {
-                // Hiç soru yok
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) {
-                    Text("Quiz için yeterli kelime bulunamadı.")
-                }
+                ) { Text("Quiz için yeterli kelime bulunamadı.") }
             }
         }
     }
