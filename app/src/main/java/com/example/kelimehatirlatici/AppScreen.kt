@@ -193,20 +193,25 @@ fun AppScreen(
         )
 
         // ★ ★ ★ GÜNCELLENDİ: WordListScreen çağrısı ★ ★ ★
-        "list" -> WordListScreen(
-            words = words,
-            onUpdateWord = { id, newWord, newMeaning, newExample, newLevel ->
-                scope.launch {
-                    // Kelimenin mevcut kütüphanesini koru
-                    val existing = words.find { it.id == id }
-                    val library = existing?.library ?: selectedLibrary
-                    val finalLevel = if (newLevel.isBlank()) "Genel" else newLevel
-                    repository.updateWordFull(id, newWord, newMeaning, newExample, finalLevel, library)
-                    refreshData()
-                }
-            },
-            onBack = { currentScreen = "learning" }
-        )
+        ""list" -> WordListScreen(
+    words = words,
+    onUpdateWord = { id, newWord, newMeaning, newExample, newLevel ->
+        scope.launch {
+            val existing = words.find { it.id == id }
+            val library = existing?.library ?: selectedLibrary
+            val finalLevel = if (newLevel.isBlank()) "Genel" else newLevel
+            repository.updateWordFull(id, newWord, newMeaning, newExample, finalLevel, library)
+            refreshData()
+        }
+    },
+    onDeleteWord = { id ->
+        scope.launch {
+            repository.deleteWordById(id)
+            refreshData()
+        }
+    },
+    onBack = { currentScreen = "learning" }
+)
 
         "add" -> AddWordScreen(
             libraries = libraries,
