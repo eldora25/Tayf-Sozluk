@@ -1,203 +1,208 @@
+kotlin
 package com.example.kelimehatirlatici
 
-import com.example.kelimehatirlatici.data.AppDatabase
-import com.example.kelimehatirlatici.data.DailyGoal
-import com.example.kelimehatirlatici.data.StudyStats
-import com.example.kelimehatirlatici.data.Word
-import com.example.kelimehatirlatici.data.WordDao
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.example.kelimehatirlatici.data.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class LibraryInfo(
+    val name: String,
+    val totalCount: Int,
+    val learnedCount: Int,
+    val notLearnedCount: Int
+)
+
 class WordRepository(private val wordDao: WordDao) {
 
-    // Temel CRUD
-    suspend fun addWord(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.insertWord(word)
+    suspend fun addWord(word: Word) = wordDao.insertWord(word)
+
+    suspend fun addWords(words: List<Word>) = wordDao.insertWords(words)
+
+    /** Kelime eklemeden önce aynı kütüphanede var mı kontrol et. true = zaten var */
+    suspend fun isWordDuplicate(library: String, word: String): Boolean {
+        return wordDao.countByLibraryAndWord(library, word) > 0
     }
 
-    suspend fun deleteWord(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.deleteWord(word)
+    suspend fun getWordsByLibraryAndLevel(library: String, level: String) =
+        wordDao.getWordsByLibraryAndLevel(library, level)
+
+    suspend fun getNextWord(library: String, level: String) =
+        wordDao.getNextWord(library, level)
+
+    suspend fun getLibraries() = wordDao.getLibraries()
+
+    suspend fun getTotalCount(library: String) = wordDao.getTotalCount(library)
+
+    suspend fun getLibraryInfoList(): List<LibraryInfo> {
+        return wordDao.getLibraries().map { lib ->
+            LibraryInfo(
+                name = lib,
+                totalCount = wordDao.getTotalCount(lib),
+                learnedCount = wordDao.getLearnedCount(lib),
+                notLearnedCount = wordDao.getTotalCount(lib) - wordDao.getLearnedCount(lib)
+            )
+        }
     }
 
-    suspend fun updateWordDetails(
-        id: Long,
-        newWord: String,
-        newMeaning: String,
-        newExample: String?
-    ) = withContext(Dispatchers.IO) {
-        wordDao.updateWordDetails(id, newWord, newMeaning, newExample)
+    suspend fun deleteLibrary(library: String) = wordDao.deleteWordsByLibrary(library)
+
+    suspend fun renameLibrary(oldName: String, newName: String) =
+        wordDao.updateLibraryName(oldName, newName)
+
+    suspend fun markKnown(word: Word) {
+        wordDao.updateWord(word.copy(isLearned = true, repeatCount = word.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
+        increaseTodayLearned()
     }
 
-    // ===== YENİ: Kelimeyi tamamen güncelle (word, meaning, example, level, library) =====
+    suspend fun markWrong(word: Word) {
+        wordDao.updateWord(word.copy(wrongCount = word.wrongCount + 1, repeatCount = word.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun getWrongWords() = wordDao.getWrongWords()
+
+    suspend fun getWrongOptions(correctId: Int, limit: Int) =
+        wordDao.getWrongOptions(correctId, limit)
+
+    suspend fun getUnlearnedWords(library: String, randomOrder: Boolean): List<Word> {
+        return if (randomOrder) wordDao.getUnlearnedWordsRandom(library)
+        else wordDao.getUnlearnedWordsAlphabetical(library)
+    }
+
+    suspend fun incrementQuizCorrect(word: Word) {
+        wordDao.updateWord(word.copy(quizCorrectCount = word.quizCorrectCount + 1, lastReviewedAt = System.currentTimeMillis()))
+    }
+
+    /** Kelimeyi öğrenilmiş olarak işaretle VE "✅ Öğrenilmiş" kütüphanesine kopyala */
+    suspend fun markAsLearned(word: Word) {
+        wordDao.updateWord(word.copy(isLearned = true))
+        // Öğrenilmişler kütüphanesine ekle (yoksa oluşur)
+        val learnedLib = "✅ Öğrenilmiş"
+        if (!isWordDuplicate(learnedLib, word.word)) {
+            wordDao.insertWord(
+                Word(
+                    word = word.word,
+                    meaning = word.meaning,
+                    example = word.example,
+                    library = learnedLib,
+                    level = word.level,
+                    isLearned = true
+                )
+            )
+        }
+    }
+
+    suspend fun recordQuizWrong(word: Word) {
+        wordDao.updateWord(word.copy(wrongCount = word.wrongCount + 1, lastReviewedAt = System.currentTimeMillis()))
+    }
+
+    suspend fun getTodayGoal() = wordDao.getGoalByDate(today())
+
+    suspend fun setTodayGoal(target: Int) {
+        val current = getTodayGoal()
+        if (current == null) wordDao.insertGoal(DailyGoal(date = today(), targetCount = target, completedCount = 0))
+        else wordDao.updateGoal(current.copy(targetCount = target))
+    }
+
+    suspend fun increaseTodayCompleted() {
+        val current = getTodayGoal()
+        if (current == null) wordDao.insertGoal(DailyGoal(date = today(), targetCount = 10, completedCount = 1))
+        else wordDao.updateGoal(current.copy(completedCount = current.completedCount + 1))
+    }
+
+    suspend fun getStats() = wordDao.getStats()
+
+    suspend fun recordQuizStat(correct: Boolean) {
+        val today = today()
+        val current = wordDao.getStatsByDate(today)
+        if (current == null) {
+            wordDao.insertStats(StudyStats(date = today, learnedCount = 0, quizCorrect = if (correct) 1 else 0, quizWrong = if (correct) 0 else 1, studyTimeMinute = 0))
+        } else {
+            if (correct) wordDao.updateStats(current.copy(quizCorrect = current.quizCorrect + 1))
+            else wordDao.updateStats(current.copy(quizWrong = current.quizWrong + 1))
+        }
+    }
+
+    suspend fun getTotalLibraryCount(): Int = getLibraries().size
+
+    suspend fun getTotalWordCount(): Int = getLibraryInfoList().sumOf { it.totalCount }
+
+    suspend fun getTotalLearnedCount(): Int = getLibraryInfoList().sumOf { it.learnedCount }
+
+    /** Dışa aktarma için kütüphanedeki tüm kelimeleri CSV string olarak döndür */
+    suspend fun exportLibraryAsCsv(library: String): String {
+        val words = wordDao.getWordsByLibrary(library)
+        val sb = StringBuilder()
+        sb.appendLine("Word,Meaning,Example,Level")
+        words.forEach { w ->
+            val escaped = listOf(w.word, w.meaning, w.example, w.level).joinToString(",") {
+                "\"${it.replace("\"", "\"\"")}\""
+            }
+            sb.appendLine(escaped)
+        }
+        return sb.toString()
+    }
+
+    /** Kelime güncelleme (düzenleme dialog'u için) */
+    suspend fun updateWordDetails(id: Int, newWord: String, newMeaning: String, newExample: String) {
+        val existing = wordDao.getWordById(id) ?: return
+        wordDao.updateWord(existing.copy(word = newWord, meaning = newMeaning, example = newExample))
+    }
+
+    private suspend fun increaseTodayLearned() {
+        val today = today()
+        val current = wordDao.getStatsByDate(today)
+        if (current == null) wordDao.insertStats(StudyStats(date = today, learnedCount = 1, quizCorrect = 0, quizWrong = 0, studyTimeMinute = 0))
+        else wordDao.updateStats(current.copy(learnedCount = current.learnedCount + 1))
+    }
+
+    private fun today() = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** ID'ye göre kelime getir */
+    suspend fun getWordById(id: Int): Word? = wordDao.getWordById(id)
+
+    /** Kelimenin tüm alanlarını güncelle (word, meaning, example, level, library) */
     suspend fun updateWordFull(
-        id: Long,
+        id: Int,
         newWord: String,
         newMeaning: String,
-        newExample: String?,
+        newExample: String,
         newLevel: String,
         newLibrary: String
-    ) = withContext(Dispatchers.IO) {
+    ) {
         wordDao.updateWordFull(id, newWord, newMeaning, newExample, newLevel, newLibrary)
     }
 
-    // ===== YENİ: Kelimeyi başka bir kütüphaneye KOPYALA =====
-    suspend fun copyWordToLibrary(word: Word, targetLibrary: String): Boolean = withContext(Dispatchers.IO) {
-        // Önce hedef kütüphanede aynı kelime var mı kontrol et
-        val existing = wordDao.isWordDuplicateInLibrary(targetLibrary, word.word)
-        if (existing) {
-            false // zaten var, kopyalama
-        } else {
-            val newWord = word.copy(
-                id = 0, // yeni kayıt olarak eklenecek
-                library = targetLibrary,
-                isLearned = false,
-                quizCorrectCount = 0,
-                wrongCount = 0
-            )
-            wordDao.insertWord(newWord)
-            true
+    /** Kelimeyi başka bir kütüphaneye kopyala */
+    suspend fun copyWordToLibrary(word: Word, targetLibrary: String): Boolean {
+        if (wordDao.countByLibraryAndWord(targetLibrary, word.word) > 0) {
+            return false // zaten var
         }
+        val newWord = word.copy(
+            id = 0, // yeni kayıt
+            library = targetLibrary,
+            isLearned = false,
+            quizCorrectCount = 0,
+            wrongCount = 0,
+            repeatCount = 0,
+            lastReviewedAt = 0L
+        )
+        wordDao.insertWord(newWord)
+        return true
     }
 
-    // ===== YENİ: Kelimeyi başka bir kütüphaneye TAŞI =====
-    suspend fun moveWordToLibrary(word: Word, targetLibrary: String) = withContext(Dispatchers.IO) {
-        wordDao.updateWordLibrary(word.id, targetLibrary)
-    }
-
-    // ===== YENİ: Kelime ID'sine göre getir (düzenleme dialogu için) =====
-    suspend fun getWordById(id: Long): Word? = withContext(Dispatchers.IO) {
-        wordDao.getWordById(id)
-    }
-
-    // Kelime sorgulama
-    suspend fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> = withContext(Dispatchers.IO) {
-        wordDao.getWordsByLibraryAndLevel(library, level)
-    }
-
-    suspend fun getNextWord(library: String, level: String): Word? = withContext(Dispatchers.IO) {
-        wordDao.getNextWordByLibraryAndLevel(library, level)
-    }
-
-    suspend fun getUnlearnedWords(library: String, randomOrder: Boolean): List<Word> = withContext(Dispatchers.IO) {
-        wordDao.getUnlearnedWordsByLibrary(library, randomOrder)
-    }
-
-    suspend fun getWrongWords(): List<Word> = withContext(Dispatchers.IO) {
-        wordDao.getWrongWords()
-    }
-
-    suspend fun isWordDuplicate(library: String, word: String): Boolean = withContext(Dispatchers.IO) {
-        wordDao.isWordDuplicateInLibrary(library, word)
-    }
-
-    // Kütüphane işlemleri
-    suspend fun getLibraries(): List<String> = withContext(Dispatchers.IO) {
-        wordDao.getDistinctLibraries()
-    }
-
-    data class LibraryInfo(
-        val library: String,
-        val totalCount: Int,
-        val learnedCount: Int,
-        val unlearnedCount: Int
-    )
-
-    suspend fun getLibraryInfoList(): List<LibraryInfo> = withContext(Dispatchers.IO) {
-        val libraries = wordDao.getDistinctLibraries()
-        libraries.map { lib ->
-            val words = wordDao.getWordsByLibrary(lib)
-            LibraryInfo(
-                library = lib,
-                totalCount = words.size,
-                learnedCount = words.count { it.isLearned },
-                unlearnedCount = words.count { !it.isLearned }
-            )
-        }
-    }
-
-    suspend fun getTotalCount(library: String): Int = withContext(Dispatchers.IO) {
-        wordDao.getTotalWordCountByLibrary(library)
-    }
-
-    suspend fun getTotalLibraryCount(): Int = withContext(Dispatchers.IO) {
-        wordDao.getDistinctLibraries().size
-    }
-
-    suspend fun getTotalWordCount(): Int = withContext(Dispatchers.IO) {
-        wordDao.getTotalWordCount()
-    }
-
-    suspend fun getTotalLearnedCount(): Int = withContext(Dispatchers.IO) {
-        wordDao.getTotalLearnedCount()
-    }
-
-    // Kütüphane yönetimi
-    suspend fun deleteLibrary(library: String) = withContext(Dispatchers.IO) {
-        wordDao.deleteByLibrary(library)
-    }
-
-    suspend fun renameLibrary(oldName: String, newName: String) = withContext(Dispatchers.IO) {
-        wordDao.updateLibraryName(oldName, newName)
-    }
-
-    // Öğrenme işlemleri
-    suspend fun markKnown(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.markAsLearned(word.id, true)
-    }
-
-    suspend fun markWrong(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.markWrong(word)
-    }
-
-    suspend fun markAsLearned(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.markAsLearned(word.id, true)
-    }
-
-    suspend fun incrementQuizCorrect(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.incrementQuizCorrect(word.id)
-    }
-
-    suspend fun recordQuizWrong(word: Word) = withContext(Dispatchers.IO) {
-        wordDao.incrementWrongCount(word.id)
-    }
-
-    // Günlük hedef
-    suspend fun getTodayGoal(): DailyGoal? = withContext(Dispatchers.IO) {
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        wordDao.getDailyGoal(today)
-    }
-
-    suspend fun setTodayGoal(count: Int) = withContext(Dispatchers.IO) {
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        wordDao.insertOrUpdateDailyGoal(today, count)
-    }
-
-    suspend fun increaseTodayCompleted() = withContext(Dispatchers.IO) {
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        wordDao.incrementCompletedCount(today)
-    }
-
-    // Quiz istatistikleri
-    suspend fun recordQuizStat(isCorrect: Boolean) = withContext(Dispatchers.IO) {
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val existing = wordDao.getStudyStatsByDate(today)
-        if (existing != null) {
-            if (isCorrect) wordDao.incrementCorrectStats(today)
-            else wordDao.incrementWrongStats(today)
-        } else {
-            wordDao.insertStudyStats(StudyStats(date = today, correctCount = if (isCorrect) 1 else 0, wrongCount = if (isCorrect) 0 else 1, learnedCount = 0))
-        }
-    }
-
-    // Dışa aktarma
-    suspend fun exportLibraryAsCsv(library: String): String = withContext(Dispatchers.IO) {
-        val words = wordDao.getWordsByLibrary(library)
-        val header = "word,meaning,example,level,isLearned"
-        val rows = words.joinToString("\n") { word ->
-            "${word.word},${word.meaning},${word.example ?: ""},${word.level},${word.isLearned}"
-        }
-        "$header\n$rows"
+    /** Kelimeyi başka bir kütüphaneye taşı */
+    suspend fun moveWordToLibrary(word: Word, targetLibrary: String) {
+        wordDao.updateWordFull(
+            id = word.id,
+            newWord = word.word,
+            newMeaning = word.meaning,
+            newExample = word.example,
+            newLevel = word.level,
+            newLibrary = targetLibrary
+        )
     }
 }
