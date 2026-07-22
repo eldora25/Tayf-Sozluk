@@ -75,9 +75,9 @@ fun LearningCardScreen(
 
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // ═══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════
     // KELİME DÜZENLEME STATE'LERİ
-    // ═══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════
     var showEditDialog by remember { mutableStateOf(false) }
     var editWord by remember(word?.word) { mutableStateOf(word?.word ?: "") }
     var editMeaning by remember(word?.meaning) { mutableStateOf(word?.meaning ?: "") }
@@ -87,6 +87,9 @@ fun LearningCardScreen(
     var editMode by remember { mutableStateOf("update") }
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
+
+    // Silme onay dialogu için
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -176,6 +179,9 @@ fun LearningCardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Menüden Paketler bölümünden hazır kelimeleri yükleyebilir veya yeni kelime ekleyebilirsin.", style = MaterialTheme.typography.bodyMedium)
             } else {
+                // ═══════════════════════════════
+                // ÇEVRİLEBİLİR KELİME KARTI
+                // ═══════════════════════════════
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -188,21 +194,15 @@ fun LearningCardScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     onClick = {
                         if (!isAnimating) {
-                            if (!isFlipped) {
-                                onSpeakClick(word.word)
-                            }
+                            if (!isFlipped) onSpeakClick(word.word)
                             isFlipped = !isFlipped
                         }
                     },
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE3F2FD)
-                    )
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
                 ) {
                     if (showFront) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .defaultMinSize(minHeight = 220.dp),
+                            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 220.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -242,14 +242,15 @@ fun LearningCardScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ═══════════════════════════════════════════════════════════
+                // ═══════════════════════════════════════════
                 // ALT BUTONLAR (Çark + Biliyorum + Tekrar)
-                // ═══════════════════════════════════════════════════════════
+                // ═══════════════════════════════════════════
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // ── ÇARK (DÜZENLEME) BUTONU ──
                     FilledTonalIconButton(
                         onClick = { showEditDialog = true },
                         modifier = Modifier.size(48.dp),
@@ -265,6 +266,7 @@ fun LearningCardScreen(
                         )
                     }
 
+                    // ── BİLİYORUM BUTONU ──
                     Button(
                         onClick = { onKnownClick(); isFlipped = false },
                         modifier = Modifier.weight(1f),
@@ -279,13 +281,12 @@ fun LearningCardScreen(
                         Text("Biliyorum", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
 
+                    // ── TEKRAR BUTONU ──
                     OutlinedButton(
                         onClick = { onWrongClick(); isFlipped = false },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFF44336)
-                        )
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF44336))
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -294,10 +295,10 @@ fun LearningCardScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // ── GIF ANİMASYONU ──
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 100.dp, max = 180.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 180.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     GifImage(
@@ -315,16 +316,14 @@ fun LearningCardScreen(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1976D2),
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(start = 16.dp)
+                modifier = Modifier.align(Alignment.Start).padding(start = 16.dp)
             )
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // KELİME DÜZENLEME DİALOGU
-    // ══════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    // KELİME DÜZENLEME DİALOGU (Güncelle / Kopyala / Taşı / Sil)
+    // ════════════════════════════════════════════════════════════════
     if (showEditDialog && word != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -338,10 +337,9 @@ fun LearningCardScreen(
             },
             text = {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
                 ) {
+                    // ── KELİME ──
                     OutlinedTextField(
                         value = editWord,
                         onValueChange = { editWord = it },
@@ -351,6 +349,7 @@ fun LearningCardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // ── ANLAM ──
                     OutlinedTextField(
                         value = editMeaning,
                         onValueChange = { editMeaning = it },
@@ -360,6 +359,7 @@ fun LearningCardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // ── ÖRNEK CÜMLE ──
                     OutlinedTextField(
                         value = editExample,
                         onValueChange = { editExample = it },
@@ -369,6 +369,7 @@ fun LearningCardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // ── SEVİYE ──
                     val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
                     Text("Seviye", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -384,6 +385,7 @@ fun LearningCardScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // ── KÜTÜPHANE SEÇİMİ ──
                     Text("Kütüphane", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
                     var libraryExpanded by remember { mutableStateOf(false) }
@@ -413,39 +415,170 @@ fun LearningCardScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // ── İŞLEM TÜRÜ (Güncelle / Kopyala / Taşı / Sil) ──
                     Text("İşlem Türü", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         FilterChip(
                             selected = editMode == "update",
                             onClick = { editMode = "update" },
-                            label = { Text("Güncelle", fontSize = 12.sp) },
+                            label = { Text("Güncelle", fontSize = 11.sp) },
                             leadingIcon = { if (editMode == "update") Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
                             selected = editMode == "copy",
                             onClick = { editMode = "copy" },
-                            label = { Text("Kopyala", fontSize = 12.sp) },
+                            label = { Text("Kopyala", fontSize = 11.sp) },
                             leadingIcon = { if (editMode == "copy") Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
                             selected = editMode == "move",
                             onClick = { editMode = "move" },
-                            label = { Text("Taşı", fontSize = 12.sp) },
+                            label = { Text("Taşı", fontSize = 11.sp) },
                             leadingIcon = { if (editMode == "move") Icon(Icons.Default.DriveFileMove, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
+                        // ★ YENİ: SİL SEÇENEĞİ ★
+                        FilterChip(
+                            selected = editMode == "delete",
+                            onClick = { editMode = "delete" },
+                            label = { Text("Sil", fontSize = 11.sp) },
+                            leadingIcon = { if (editMode == "delete") Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFFFCDD2)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                    if (editMode == "copy") {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Kelime seçilen kütüphaneye kopyalanacak, orijinali kalacak.", fontSize = 12.sp, color = Color.Gray)
+
+                    // İşlem açıklamaları
+                    when (editMode) {
+                        "copy" -> {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Kelime seçilen kütüphaneye kopyalanacak, orijinali kalacak.", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        "move" -> {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Kelime seçilen kütüphaneye taşınacak.", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        "delete" -> {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Kelime tamamen silinecek! Bu işlem geri alınamaz.", fontSize = 12.sp, color = Color(0xFFD32F2F))
+                        }
                     }
-                    if (editMode == "move") {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Kelime seçilen kütüphaneye taşınacak.", fontSize = 12.sp, color = Color.Gray)
+                }
+            },
+            confirmButton = {
+                if (editMode == "delete") {
+                    // ★ YENİ: Sil butonu kırmızı olsun, onay dialogunu açsın ★
+                    Button(
+                        onClick = {
+                            showEditDialog = false
+                            showDeleteConfirm = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
+                    ) { Text("🗑 Sil") }
+                } else {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                try {
+                                    val trimmedWord = editWord.trim()
+                                    val trimmedMeaning = editMeaning.trim()
+                                    val trimmedExample = editExample.trim()
+
+                                    when (editMode) {
+                                        "update" -> {
+                                            wordRepository.updateWordFull(
+                                                id = word.id,
+                                                newWord = trimmedWord,
+                                                newMeaning = trimmedMeaning,
+                                                newExample = trimmedExample,
+                                                newLevel = editLevel,
+                                                newLibrary = editLibrary
+                                            )
+                                            editMessage = "✅ Kelime güncellendi!"
+                                        }
+                                        "copy" -> {
+                                            val success = wordRepository.copyWordToLibrary(
+                                                word = word.copy(word = trimmedWord, meaning = trimmedMeaning, example = trimmedExample, level = editLevel),
+                                                targetLibrary = editLibrary
+                                            )
+                                            editMessage = if (success) "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!" else "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
+                                        }
+                                        "move" -> {
+                                            wordRepository.updateWordFull(
+                                                id = word.id,
+                                                newWord = trimmedWord,
+                                                newMeaning = trimmedMeaning,
+                                                newExample = trimmedExample,
+                                                newLevel = editLevel,
+                                                newLibrary = editLibrary
+                                            )
+                                            editMessage = "✅ Kelime \"$editLibrary\" kütüphanesine taşındı!"
+                                        }
+                                    }
+                                    showEditSuccess = true
+                                    kotlinx.coroutines.delay(1500)
+                                    showEditDialog = false
+                                    showEditSuccess = false
+                                    editMessage = ""
+                                } catch (e: Exception) {
+                                    editMessage = "❌ Hata: ${e.message}"
+                                    showEditSuccess = true
+                                }
+                            }
+                        },
+                        enabled = editWord.isNotBlank() && editMeaning.isNotBlank()
+                    ) { Text("Kaydet") }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showEditDialog = false; showEditSuccess = false; editMessage = "" }) { Text("İptal") }
+            }
+        )
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ★ YENİ: SİLME ONAY DİALOGU ★
+    // ════════════════════════════════════════════════════════════════
+    if (showDeleteConfirm && word != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = Color(0xFFD32F2F),
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            title = { Text("Kelimeyi Sil", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "Bu kelimeyi kalıcı olarak silmek istediğine emin misin?",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD32F2F)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Kelime: ${word.word}", fontWeight = FontWeight.Bold)
+                            Text("Anlam: ${word.meaning}")
+                            Text("Kütüphane: ${word.library}")
+                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Bu işlem geri alınamaz!", color = Color(0xFFD32F2F), fontSize = 13.sp)
                 }
             },
             confirmButton = {
@@ -453,44 +586,11 @@ fun LearningCardScreen(
                     onClick = {
                         coroutineScope.launch {
                             try {
-                                val trimmedWord = editWord.trim()
-                                val trimmedMeaning = editMeaning.trim()
-                                val trimmedExample = editExample.trim()
-
-                                when (editMode) {
-                                    "update" -> {
-                                        wordRepository.updateWordFull(
-                                            id = word.id,
-                                            newWord = trimmedWord,
-                                            newMeaning = trimmedMeaning,
-                                            newExample = trimmedExample,
-                                            newLevel = editLevel,
-                                            newLibrary = editLibrary
-                                        )
-                                        editMessage = "✅ Kelime güncellendi!"
-                                    }
-                                    "copy" -> {
-                                        val success = wordRepository.copyWordToLibrary(
-                                            word = word.copy(word = trimmedWord, meaning = trimmedMeaning, example = trimmedExample, level = editLevel),
-                                            targetLibrary = editLibrary
-                                        )
-                                        editMessage = if (success) "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!" else "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
-                                    }
-                                    "move" -> {
-                                        wordRepository.updateWordFull(
-                                            id = word.id,
-                                            newWord = trimmedWord,
-                                            newMeaning = trimmedMeaning,
-                                            newExample = trimmedExample,
-                                            newLevel = editLevel,
-                                            newLibrary = editLibrary
-                                        )
-                                        editMessage = "✅ Kelime \"$editLibrary\" kütüphanesine taşındı!"
-                                    }
-                                }
+                                wordRepository.deleteWordById(word.id)
+                                showDeleteConfirm = false
+                                editMessage = "✅ Kelime silindi!"
                                 showEditSuccess = true
                                 kotlinx.coroutines.delay(1500)
-                                showEditDialog = false
                                 showEditSuccess = false
                                 editMessage = ""
                             } catch (e: Exception) {
@@ -499,11 +599,14 @@ fun LearningCardScreen(
                             }
                         }
                     },
-                    enabled = editWord.isNotBlank() && editMeaning.isNotBlank()
-                ) { Text("Kaydet") }
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White
+                    )
+                ) { Text("Evet, Sil") }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showEditDialog = false; showEditSuccess = false; editMessage = "" }) { Text("İptal") }
+                OutlinedButton(onClick = { showDeleteConfirm = false }) { Text("İptal") }
             }
         )
     }
