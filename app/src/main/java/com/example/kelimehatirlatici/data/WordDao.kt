@@ -105,4 +105,10 @@ interface WordDao {
     /** ID'ye göre tek bir kelimeyi tamamen sil */
     @Query("DELETE FROM words WHERE id = :id")
     suspend fun deleteWordById(id: Int)
+
+    // ═══════════════════════════════════════════════════════════
+    // "Tümü" seviyesi için / Kütüphane bazlı sıradaki kelime
+    // ═══════════════════════════════════════════════════════════
+    @Query("SELECT * FROM words WHERE library = :library ORDER BY isLearned ASC, repeatCount ASC, lastReviewedAt ASC LIMIT 1")
+    suspend fun getNextWordFromLibrary(library: String): Word?
 }
