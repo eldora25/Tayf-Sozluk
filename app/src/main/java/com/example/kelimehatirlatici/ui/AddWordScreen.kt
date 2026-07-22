@@ -45,15 +45,48 @@ fun AddWordScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(value = word, onValueChange = { word = it }, label = { Text("Kelime") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = word,
+                onValueChange = { word = it },
+                label = { Text("Kelime") },
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(value = meaning, onValueChange = { meaning = it }, label = { Text("Anlam") }, modifier = Modifier.fillMaxWidth())
+
+            // ★ Değişiklik: Anlam alanı - çoklu anlam desteği açıklaması eklendi
+            OutlinedTextField(
+                value = meaning,
+                onValueChange = { meaning = it },
+                label = { Text("Anlam") },
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = {
+                    Text(
+                        "Birden fazla anlam varsa ||| ile ayırın. Örn: özgür, hür|||serbest|||bedava",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(value = example, onValueChange = { example = it }, label = { Text("Örnek Cümle") }, modifier = Modifier.fillMaxWidth())
+
+            // ★ Değişiklik: Örnek cümle alanı - çoklu örnek desteği açıklaması eklendi
+            OutlinedTextField(
+                value = example,
+                onValueChange = { example = it },
+                label = { Text("Örnek Cümle") },
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = {
+                    Text(
+                        "Birden fazla örnek varsa ||| ile ayırın. Örn: Örnek 1|||Örnek 2",
+                        fontSize = 11.sp,
+                        color = Color.Gray
+                    )
+                }
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ────── KÜTÜPHANE DROPDOWN ──────
+            // Kütüphane dropdown
             ExposedDropdownMenuBox(
                 expanded = libraryExpanded,
                 onExpandedChange = { libraryExpanded = it }
@@ -64,7 +97,9 @@ fun AddWordScreen(
                     readOnly = true,
                     label = { Text("Kütüphane") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = libraryExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
                 )
                 ExposedDropdownMenu(
                     expanded = libraryExpanded,
@@ -92,9 +127,7 @@ fun AddWordScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ═══════════════════════════════════════════════════
-            // ★ YENİ: SEVİYE SEÇİMİ (A1, A2, B1, B2, C1, C2, Genel)
-            // ═══════════════════════════════════════════════════
+            // Seviye seçimi
             Text("Seviye", fontSize = 14.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(4.dp))
             val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
@@ -118,7 +151,13 @@ fun AddWordScreen(
                 onClick = {
                     if (word.isNotBlank() && meaning.isNotBlank()) {
                         val finalLevel = if (level.isBlank()) "Genel" else level
-                        onSave(word.trim(), meaning.trim(), example.trim(), selectedLibrary.trim().ifBlank { "Genel" }, finalLevel)
+                        onSave(
+                            word.trim(),
+                            meaning.trim(),
+                            example.trim(),
+                            selectedLibrary.trim().ifBlank { "Genel" },
+                            finalLevel
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -130,7 +169,7 @@ fun AddWordScreen(
         }
     }
 
-    // ────── YENİ KÜTÜPHANE DİALOGU ──────
+    // Yeni kütüphane dialogu
     if (showNewLibraryDialog) {
         AlertDialog(
             onDismissRequest = { showNewLibraryDialog = false; newLibraryName = "" },
