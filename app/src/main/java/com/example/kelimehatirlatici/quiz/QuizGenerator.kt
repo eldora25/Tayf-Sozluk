@@ -3,11 +3,8 @@ package com.example.kelimehatirlatici.quiz
 import com.example.kelimehatirlatici.WordRepository
 import com.example.kelimehatirlatici.data.Word
 
-data class QuizQuestion(
-    val word: Word,
-    val options: List<String>,
-    val correctAnswer: String
-)
+// DİKKAT: QuizQuestion burada tanımlı DEĞİL!
+// Ayrı bir QuizQuestion.kt dosyasında tanımlı olduğu için buraya EKLENMEYECEK.
 
 /**
  * Yardımcı: ||| ile ayrılmış çoklu anlamlardan sadece ilk anlamı alır.
