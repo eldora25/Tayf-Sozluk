@@ -20,13 +20,12 @@ class QuizGenerator(private val repository: WordRepository) {
         val questions = mutableListOf<QuizQuestion>()
 
         for (word in words) {
-            // ★ Değişiklik: Çoklu anlamdan sadece ilkini al
+            // Çoklu anlamdan sadece ilkini al
             val correctMeaning = getFirstMeaning(word.meaning)
 
             // 3 yanlış şık al (diğer kelimelerden)
             val wrongWords = repository.getWrongOptions(word.id, 3)
             val wrongOptions = wrongWords.map {
-                // Yanlış şıklarda da sadece ilk anlamı göster
                 getFirstMeaning(it.meaning)
             }
 
