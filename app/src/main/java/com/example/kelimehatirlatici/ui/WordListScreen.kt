@@ -61,10 +61,11 @@ fun WordListScreen(
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
 
+    // Silme onay dialogu
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Kelime Listesi (${words.size})" }) }
+        topBar = { TopAppBar(title = { Text("Kelime Listesi (${words.size})") }) }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             if (words.isEmpty()) {
@@ -105,7 +106,7 @@ fun WordListScreen(
                                         color = Color(0xFF1976D2)
                                     )
                                 }
-                                // ★ ÇARK İKONU - Düzenle/Sil
+                                // Düzenleme butonu (çark ikonu)
                                 IconButton(onClick = {
                                     editingWord = w
                                     editWordText = w.word
@@ -116,11 +117,7 @@ fun WordListScreen(
                                     editMessage = ""
                                     showEditSuccess = false
                                 }) {
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription = "Düzenle/Sil",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -133,7 +130,7 @@ fun WordListScreen(
     }
 
     // ════════════════════════════════════════════════════════════
-    // DÜZENLEME / SİL DİALOGU
+    // DÜZENLEME DİALOGU (Güncelle / Sil seçenekli)
     // ════════════════════════════════════════════════════════════
     if (editingWord != null) {
         AlertDialog(
@@ -156,6 +153,7 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Anlam (çoklu anlam ipucu)
                     OutlinedTextField(
                         value = editMeaningText,
                         onValueChange = { editMeaningText = it },
@@ -167,6 +165,7 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Örnek Cümle (çoklu örnek ipucu)
                     OutlinedTextField(
                         value = editExampleText,
                         onValueChange = { editExampleText = it },
@@ -209,11 +208,7 @@ fun WordListScreen(
                             onClick = { editMode = "update" },
                             label = { Text("Güncelle", fontSize = 12.sp) },
                             leadingIcon = {
-                                if (editMode == "update") Icon(
-                                    Icons.Default.Done,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                if (editMode == "update") Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp))
                             },
                             modifier = Modifier.weight(1f)
                         )
