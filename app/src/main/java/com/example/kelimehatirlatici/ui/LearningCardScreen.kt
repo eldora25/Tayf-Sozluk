@@ -12,20 +12,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
-import kotlinx.coroutines.launch
 
 // ★ Yeni: ||| ile ayrılmış çoklu değerleri listeye çevirir
 private fun parseMultiValue(text: String): List<String> {
     return text.split("|||").map { it.trim() }.filter { it.isNotBlank() }
 }
 
-// ★ Yeni: Çoklu anlamları görüntüleme - her anlamı alt alta • ile göster
+// ★ Yeni: Çoklu anlamları alt alta görüntüleme
 private fun formatMultiMeanings(meaning: String): String {
     val parts = parseMultiValue(meaning)
     return if (parts.size > 1) {
@@ -35,7 +35,7 @@ private fun formatMultiMeanings(meaning: String): String {
     }
 }
 
-// ★ Yeni: Çoklu örnekleri görüntüleme - her örneği alt alta • ile göster
+// ★ Yeni: Çoklu örnekleri alt alta görüntüleme
 private fun formatMultiExamples(example: String): String {
     val parts = parseMultiValue(example)
     return if (parts.size > 1) {
@@ -72,6 +72,9 @@ fun LearningCardScreen(
 ) {
     var isFlipped by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+
+    // ★ Düzeltme: density'i LocalDensity ile al
+    val density = LocalDensity.current.density
 
     val flipRotation = animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
@@ -114,7 +117,6 @@ fun LearningCardScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Bilgi satırı
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -125,7 +127,6 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Günlük hedef
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -147,7 +148,7 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Kart
+            // ★ Düzeltme: density değişkeni LocalDensity'den alınıyor
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,13 +165,9 @@ fun LearningCardScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (flipRotation.value < 90f) {
-                        // ═══════════════════════════════════════════
                         // ÖN YÜZ: Kelime
-                        // ═══════════════════════════════════════════
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -192,14 +189,12 @@ fun LearningCardScreen(
                             }
                         }
                     } else {
-                        // ═══════════════════════════════════════════
                         // ARKA YÜZ: Anlam ve Örnek
-                        // ═══════════════════════════════════════════
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(24.dp)
-                                .graphicsLayer(scaleX = -1f) // Yazıyı düzeltmek için
+                                .graphicsLayer(scaleX = -1f)
                                 .verticalScroll(rememberScrollState()),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -248,25 +243,21 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Butonlar
             if (word != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Konuşma butonu
                     OutlinedButton(
                         onClick = { onSpeakClick(word.word) },
                         modifier = Modifier.weight(1f)
                     ) { Text("🔊") }
 
-                    // Bilmiyorum
                     OutlinedButton(
                         onClick = { isFlipped = true },
                         modifier = Modifier.weight(1f)
                     ) { Text("❓ Bilmiyorum") }
 
-                    // Yanlış
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -278,7 +269,6 @@ fun LearningCardScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                     ) { Text("❌ Yanlış") }
 
-                    // Biliyorum
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -294,19 +284,10 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // İpucu
             if (word != null && !isFlipped) {
-                Text(
-                    "Karta dokunarak çevirin",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Text("Karta dokunarak çevirin", fontSize = 12.sp, color = Color.Gray)
             } else if (word != null) {
-                Text(
-                    "Butonlardan birine basın",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Text("Butonlardan birine basın", fontSize = 12.sp, color = Color.Gray)
             }
         }
     }
