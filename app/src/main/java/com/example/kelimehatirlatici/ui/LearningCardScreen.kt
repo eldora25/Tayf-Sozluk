@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.kelimehatirlatici.BuildConfig   // ★ YENİ İMPORT
+import com.example.kelimehatirlatici.BuildConfig
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.WordRepository
 import com.example.kelimehatirlatici.data.AppDatabase
@@ -173,7 +173,6 @@ fun LearningCardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Menüden Paketler bölümünden hazır kelimeleri yükleyebilir veya yeni kelime ekleyebilirsin.", style = MaterialTheme.typography.bodyMedium)
             } else {
-                // Çevrilebilir kelime kartı
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -248,7 +247,6 @@ fun LearningCardScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ── ÇARK (DÜZENLEME) BUTONU ──
                     FilledTonalIconButton(
                         onClick = { showEditDialog = true },
                         modifier = Modifier.size(48.dp),
@@ -264,7 +262,6 @@ fun LearningCardScreen(
                         )
                     }
 
-                    // ── BİLİYORUM BUTONU ──
                     Button(
                         onClick = { onKnownClick(); isFlipped = false },
                         modifier = Modifier.weight(1f),
@@ -279,7 +276,6 @@ fun LearningCardScreen(
                         Text("Biliyorum", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
 
-                    // ── TEKRAR BUTONU ──
                     OutlinedButton(
                         onClick = { onWrongClick(); isFlipped = false },
                         modifier = Modifier.weight(1f),
@@ -294,7 +290,6 @@ fun LearningCardScreen(
                     }
                 }
 
-                // ── GIF ANİMASYONU ──
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
@@ -312,7 +307,6 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ══════════ VERSİYON NUMARASI (DİNAMİK) ══════════
             Text(
                 text = "v:${BuildConfig.VERSION_NAME}        By: Tayfun Yamak ©",
                 fontSize = 15.sp,
@@ -349,7 +343,6 @@ fun LearningCardScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Kelime
                     OutlinedTextField(
                         value = editWord,
                         onValueChange = { editWord = it },
@@ -360,7 +353,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Anlam
                     OutlinedTextField(
                         value = editMeaning,
                         onValueChange = { editMeaning = it },
@@ -371,7 +363,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Örnek Cümle
                     OutlinedTextField(
                         value = editExample,
                         onValueChange = { editExample = it },
@@ -382,7 +373,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Seviye
                     val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
                     Text("Seviye", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -402,7 +392,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Kütüphane seçimi
                     Text("Kütüphane", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
                     var libraryExpanded by remember { mutableStateOf(false) }
@@ -438,7 +427,6 @@ fun LearningCardScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // İşlem türü seçimi
                     Text("İşlem Türü", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
