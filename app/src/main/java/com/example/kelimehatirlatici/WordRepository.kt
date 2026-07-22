@@ -1,4 +1,3 @@
-kotlin
 package com.example.kelimehatirlatici
 
 import com.example.kelimehatirlatici.data.*
@@ -75,7 +74,6 @@ class WordRepository(private val wordDao: WordDao) {
     /** Kelimeyi öğrenilmiş olarak işaretle VE "✅ Öğrenilmiş" kütüphanesine kopyala */
     suspend fun markAsLearned(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true))
-        // Öğrenilmişler kütüphanesine ekle (yoksa oluşur)
         val learnedLib = "✅ Öğrenilmiş"
         if (!isWordDuplicate(learnedLib, word.word)) {
             wordDao.insertWord(
@@ -176,13 +174,13 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.updateWordFull(id, newWord, newMeaning, newExample, newLevel, newLibrary)
     }
 
-    /** Kelimeyi başka bir kütüphaneye kopyala */
+    /** Kelimeyi başka bir kütüphaneye kopyala. false = zaten var */
     suspend fun copyWordToLibrary(word: Word, targetLibrary: String): Boolean {
         if (wordDao.countByLibraryAndWord(targetLibrary, word.word) > 0) {
-            return false // zaten var
+            return false
         }
         val newWord = word.copy(
-            id = 0, // yeni kayıt
+            id = 0,
             library = targetLibrary,
             isLearned = false,
             quizCorrectCount = 0,
