@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.room.Room
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.kelimehatirlatici.BuildConfig
@@ -89,7 +90,9 @@ fun LearningCardScreen(
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val wordRepository = remember { WordRepository(AppDatabase.getInstance(context).wordDao()) }
+    val wordRepository = remember {
+        WordRepository(AppDatabase.getInstance(context).wordDao())
+    }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(showEditDialog) {
@@ -329,11 +332,7 @@ fun LearningCardScreen(
                 Column {
                     Text("Kelimeyi Düzenle", fontWeight = FontWeight.Bold)
                     if (showEditSuccess) {
-                        Text(
-                            text = editMessage,
-                            color = Color(0xFF4CAF50),
-                            fontSize = 14.sp
-                        )
+                        Text(text = editMessage, color = Color(0xFF4CAF50), fontSize = 14.sp)
                     }
                 }
             },
@@ -350,7 +349,6 @@ fun LearningCardScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
@@ -360,7 +358,6 @@ fun LearningCardScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
@@ -370,16 +367,12 @@ fun LearningCardScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
                     Text("Seviye", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         levels.forEach { level ->
                             FilterChip(
                                 selected = editLevel == level,
@@ -389,7 +382,6 @@ fun LearningCardScreen(
                             )
                         }
                     }
-
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text("Kütüphane", fontSize = 14.sp, color = Color.Gray)
@@ -404,9 +396,7 @@ fun LearningCardScreen(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = libraryExpanded) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
                             label = { Text("Kütüphane") }
                         )
                         ExposedDropdownMenu(
@@ -416,66 +406,38 @@ fun LearningCardScreen(
                             libraries.forEach { lib ->
                                 DropdownMenuItem(
                                     text = { Text(lib) },
-                                    onClick = {
-                                        editLibrary = lib
-                                        libraryExpanded = false
-                                    }
+                                    onClick = { editLibrary = lib; libraryExpanded = false }
                                 )
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text("İşlem Türü", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
                             selected = editMode == "update",
                             onClick = { editMode = "update" },
                             label = { Text("Güncelle", fontSize = 12.sp) },
-                            leadingIcon = {
-                                if (editMode == "update") Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
+                            leadingIcon = { if (editMode == "update") Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
-
                         FilterChip(
                             selected = editMode == "copy",
                             onClick = { editMode = "copy" },
                             label = { Text("Kopyala", fontSize = 12.sp) },
-                            leadingIcon = {
-                                if (editMode == "copy") Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
+                            leadingIcon = { if (editMode == "copy") Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
-
                         FilterChip(
                             selected = editMode == "move",
                             onClick = { editMode = "move" },
                             label = { Text("Taşı", fontSize = 12.sp) },
-                            leadingIcon = {
-                                if (editMode == "move") Icon(
-                                    Icons.Default.DriveFileMove,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
+                            leadingIcon = { if (editMode == "move") Icon(Icons.Default.DriveFileMove, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
                     }
-
                     if (editMode == "copy") {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("Kelime seçilen kütüphaneye kopyalanacak, orijinali kalacak.", fontSize = 12.sp, color = Color.Gray)
@@ -509,19 +471,10 @@ fun LearningCardScreen(
                                     }
                                     "copy" -> {
                                         val success = wordRepository.copyWordToLibrary(
-                                            word = word.copy(
-                                                word = trimmedWord,
-                                                meaning = trimmedMeaning,
-                                                example = trimmedExample,
-                                                level = editLevel
-                                            ),
+                                            word = word.copy(word = trimmedWord, meaning = trimmedMeaning, example = trimmedExample, level = editLevel),
                                             targetLibrary = editLibrary
                                         )
-                                        editMessage = if (success) {
-                                            "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!"
-                                        } else {
-                                            "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
-                                        }
+                                        editMessage = if (success) "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!" else "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
                                     }
                                     "move" -> {
                                         wordRepository.updateWordFull(
@@ -535,13 +488,11 @@ fun LearningCardScreen(
                                         editMessage = "✅ Kelime \"$editLibrary\" kütüphanesine taşındı!"
                                     }
                                 }
-
                                 showEditSuccess = true
                                 kotlinx.coroutines.delay(1500)
                                 showEditDialog = false
                                 showEditSuccess = false
                                 editMessage = ""
-
                             } catch (e: Exception) {
                                 editMessage = "❌ Hata: ${e.message}"
                                 showEditSuccess = true
@@ -549,18 +500,10 @@ fun LearningCardScreen(
                         }
                     },
                     enabled = editWord.isNotBlank() && editMeaning.isNotBlank()
-                ) {
-                    Text("Kaydet")
-                }
+                ) { Text("Kaydet") }
             },
             dismissButton = {
-                OutlinedButton(onClick = {
-                    showEditDialog = false
-                    showEditSuccess = false
-                    editMessage = ""
-                }) {
-                    Text("İptal")
-                }
+                OutlinedButton(onClick = { showEditDialog = false; showEditSuccess = false; editMessage = "" }) { Text("İptal") }
             }
         )
     }
