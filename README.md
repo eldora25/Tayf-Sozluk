@@ -27,3 +27,4 @@ GitHub reposunda:
 word,meaning,example,library,level
 apple,elma,I eat an apple.,İngilizce A1,A1
 book,kitap,This is my book.,İngilizce A1,A1
+Kelime düzenleme özelliği eklendi
