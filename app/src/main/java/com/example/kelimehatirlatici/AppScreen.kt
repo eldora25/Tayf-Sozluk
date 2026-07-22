@@ -1,426 +1,261 @@
-package com.example.kelimehatirlatici
+package com.example.kelimehatirlatici.ui
 
-import android.content.Context
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
-import com.example.kelimehatirlatici.importer.CsvImportHelper
-import com.example.kelimehatirlatici.importer.ExcelImportHelper
-import com.example.kelimehatirlatici.importer.LingoesImportHelper
-import com.example.kelimehatirlatici.packs.WordPack
-import com.example.kelimehatirlatici.packs.WordPackReader
-import com.example.kelimehatirlatici.quiz.Question
-import com.example.kelimehatirlatici.quiz.QuizGenerator
-import com.example.kelimehatirlatici.quiz.QuizScreen
-import com.example.kelimehatirlatici.quiz.QuizSession
-import com.example.kelimehatirlatici.ui.*
-import kotlinx.coroutines.launch
 
+// Çoklu değerleri listeye çevirir
+private fun parseMultiValue(text: String): List<String> {
+    return text.split("|||").map { it.trim() }.filter { it.isNotBlank() }
+}
+
+// Çoklu anlamları alt alta görüntüleme
+private fun formatMultiMeanings(meaning: String): String {
+    val parts = parseMultiValue(meaning)
+    return if (parts.size > 1) {
+        parts.joinToString("\n") { "• $it" }
+    } else {
+        meaning
+    }
+}
+
+// Çoklu örnekleri alt alta görüntüleme
+private fun formatMultiExamples(example: String): String {
+    val parts = parseMultiValue(example)
+    return if (parts.size > 1) {
+        parts.joinToString("\n") { "• \"$it\"" }
+    } else if (example.isNotBlank()) {
+        "\"$example\""
+    } else {
+        ""
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScreen(
-    repository: WordRepository,
-    settings: AppSettings,
-    context: Context,
-    onSpeak: (String) -> Unit,
-    soundManager: SoundManager,
-    onDarkModeChange: (Boolean) -> Unit
+    words: List<Word>,
+    word: Word?,
+    selectedLibrary: String,
+    selectedLevel: String,
+    totalWordCount: Int,
+    dailyGoal: DailyGoal?,
+    isFlipped: Boolean,
+    memorizationThreshold: Int,
+    onKnownClick: () -> Unit,
+    onWrongClick: () -> Unit,
+    onFlip: () -> Unit,
+    onSpeakClick: (String) -> Unit,
+    onAddWordClick: () -> Unit,
+    onWordListClick: () -> Unit,
+    onLibraryClick: () -> Unit,
+    onLevelClick: () -> Unit,
+    onGoalClick: () -> Unit,
+    onStatsClick: () -> Unit,
+    onQuizClick: () -> Unit,
+    onImportClick: () -> Unit,
+    onPacksClick: () -> Unit,
+    onWrongWordsClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onWordClick: (Word) -> Unit,
+    onWordLongClick: (Word) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    var currentScreen by remember { mutableStateOf("learning") }
+    var showWordList by remember { mutableStateOf(false) }
 
-    var selectedLibrary by remember { mutableStateOf(settings.selectedLibrary) }
-    var selectedLevel by remember { mutableStateOf(settings.selectedLevel) }
-
-    var words by remember { mutableStateOf<List<Word>>(emptyList()) }
-    var currentWord by remember { mutableStateOf<Word?>(null) }
-    var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
-    var libraryInfoList by remember { mutableStateOf<List<LibraryInfo>>(emptyList()) }
-    var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
-    var packs by remember { mutableStateOf<List<WordPack>>(emptyList()) }
-    var wrongWords by remember { mutableStateOf<List<Word>>(emptyList()) }
-    var totalWordCount by remember { mutableIntStateOf(0) }
-    var totalLibraries by remember { mutableIntStateOf(0) }
-    var totalWordsOverall by remember { mutableIntStateOf(0) }
-    var totalLearnedOverall by remember { mutableIntStateOf(0) }
-
-    val quizGenerator = remember { QuizGenerator(repository) }
-    val quizSession = remember { QuizSession() }
-
-    var quizQuestionCount by remember { mutableIntStateOf(settings.quizQuestionCount) }
-    var randomOrder by remember { mutableStateOf(settings.randomOrder) }
-    var memorizationThreshold by remember { mutableIntStateOf(settings.memorizationThreshold) }
-    var darkMode by remember { mutableStateOf(settings.darkMode) }
-
-    var pendingLibraryName by remember { mutableStateOf("") }
-    var exportLibraryName by remember { mutableStateOf("") }
-
-    fun refreshData() {
-        scope.launch {
-            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-            currentWord = repository.getNextWord(selectedLibrary, selectedLevel)
-            libraries = repository.getLibraries()
-            libraryInfoList = repository.getLibraryInfoList()
-            dailyGoal = repository.getTodayGoal()
-            packs = WordPackReader.readAllPacks(context)
-            wrongWords = repository.getWrongWords()
-            totalWordCount = repository.getTotalCount(selectedLibrary)
-            totalLibraries = repository.getTotalLibraryCount()
-            totalWordsOverall = repository.getTotalWordCount()
-            totalLearnedOverall = repository.getTotalLearnedCount()
-        }
-    }
-
-    LaunchedEffect(selectedLibrary, selectedLevel) { refreshData() }
-    LaunchedEffect(selectedLibrary) { settings.selectedLibrary = selectedLibrary }
-    LaunchedEffect(selectedLevel) { settings.selectedLevel = selectedLevel }
-
-    // Dosya seçiciler
-    val csvUri = remember { mutableStateOf<Uri?>(null) }
-    val excelUri = remember { mutableStateOf<Uri?>(null) }
-    val lingoesUri = remember { mutableStateOf<Uri?>(null) }
-
-    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        csvUri.value = uri
-        if (uri != null) scope.launch {
-            val imported = CsvImportHelper.importFromCsv(context, uri)
-            val libName = pendingLibraryName.ifBlank { "İçe Aktarılan CSV" }
-            repository.addWords(imported.map { it.copy(library = libName) })
-            selectedLibrary = libName
-            pendingLibraryName = ""
-            refreshData()
-            currentScreen = "learning"
-        }
-    }
-
-    val excelLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        excelUri.value = uri
-        if (uri != null) scope.launch {
-            val imported = ExcelImportHelper.importFromExcel(context, uri)
-            val libName = pendingLibraryName.ifBlank { "İçe Aktarılan Excel" }
-            repository.addWords(imported.map { it.copy(library = libName) })
-            selectedLibrary = libName
-            pendingLibraryName = ""
-            refreshData()
-            currentScreen = "learning"
-        }
-    }
-
-    val lingoesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        lingoesUri.value = uri
-        if (uri != null) scope.launch {
-            val imported = LingoesImportHelper.importFromLingoesText(context, uri)
-            val libName = pendingLibraryName.ifBlank { "Lingoes TXT" }
-            repository.addWords(imported.map { it.copy(library = libName) })
-            selectedLibrary = libName
-            pendingLibraryName = ""
-            refreshData()
-            currentScreen = "learning"
-        }
-    }
-
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
-        if (uri != null) scope.launch {
-            try {
-                val csv = repository.exportLibraryAsCsv(exportLibraryName)
-                context.contentResolver.openOutputStream(uri)?.use { out ->
-                    out.write(csv.toByteArray(Charsets.UTF_8))
-                }
-                Toast.makeText(context, "✅ \"$exportLibraryName\" dışa aktarıldı", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "❌ Hata: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-            refreshData()
-        }
-    }
-
-    when (currentScreen) {
-        "learning" -> LearningCardScreen(
-            word = currentWord,
-            selectedLibrary = selectedLibrary,
-            selectedLevel = selectedLevel,
-            dailyGoal = dailyGoal,
-            totalWordCount = totalWordCount,
-            onKnownClick = {
-                scope.launch {
-                    currentWord?.let { repository.markKnown(it); repository.increaseTodayCompleted() }
-                    refreshData()
-                }
-            },
-            onWrongClick = {
-                scope.launch {
-                    currentWord?.let { repository.markWrong(it) }
-                    refreshData()
-                }
-            },
-            onSpeakClick = onSpeak,
-            onAddWordClick = { refreshData(); currentScreen = "add" },
-            onWordListClick = { refreshData(); currentScreen = "list" },
-            onLibraryClick = { refreshData(); currentScreen = "library" },
-            onLevelClick = { currentScreen = "level" },
-            onGoalClick = { refreshData(); currentScreen = "goal" },
-            onStatsClick = { refreshData(); currentScreen = "stats" },
-            onQuizClick = {
-                scope.launch {
-                    val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
-                    val quizQuestions = quizGenerator.generateQuestions(unlearned)
-                    val questions = quizQuestions.map { q ->
-                        Question(
-                            word = q.word,
-                            options = q.options,
-                            correctAnswer = q.correctAnswer
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Kelime Hatırlatıcı", fontSize = 18.sp)
+                        // ★ Build versiyonu + Tayfun Yamak
+                        Text(
+                            "Build 1.0 - Tayfun Yamak",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }
-                    quizSession.start(questions, quizQuestionCount)
-                    currentScreen = "quiz"
-                }
-            },
-            onImportClick = { currentScreen = "import" },
-            onPacksClick = {
-                packs = WordPackReader.readAllPacks(context)
-                currentScreen = "packs"
-            },
-            onWrongWordsClick = {
-                scope.launch {
-                    wrongWords = repository.getWrongWords()
-                    currentScreen = "wrong"
-                }
-            },
-            onSettingsClick = { currentScreen = "settings" }
-        )
-
-        "list" -> WordListScreen(
-            words = words,
-            onUpdateWord = { id, newWord, newMeaning, newExample, newLevel ->
-                scope.launch {
-                    val existing = words.find { it.id == id }
-                    val library = existing?.library ?: selectedLibrary
-                    val finalLevel = if (newLevel.isBlank()) "Genel" else newLevel
-                    repository.updateWordFull(id, newWord, newMeaning, newExample, finalLevel, library)
-                    refreshData()
-                }
-            },
-            onDeleteWord = { id ->
-                scope.launch {
-                    repository.deleteWordById(id)
-                    refreshData()
-                }
-            },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "add" -> AddWordScreen(
-            libraries = libraries,
-            onSave = { w, m, e, lib, lvl ->
-                scope.launch {
-                    val isDup = repository.isWordDuplicate(lib, w)
-                    if (isDup) {
-                        Toast.makeText(context, "⚠️ \"$w\" zaten \"$lib\" kütüphanesinde var!", Toast.LENGTH_LONG).show()
-                    } else {
-                        repository.addWord(Word(word = w, meaning = m, example = e, library = lib, level = lvl))
-                        selectedLibrary = lib
-                        selectedLevel = lvl
-                        refreshData()
-                        currentScreen = "learning"
+                },
+                actions = {
+                    // ★ Çark ikonu - ayarlar menüsü
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
                     }
                 }
-            },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "library" -> LibrarySelectScreen(
-            libraryInfoList = libraryInfoList,
-            selectedLibrary = selectedLibrary,
-            onLibrarySelected = {
-                selectedLibrary = it
-                currentScreen = "learning"
-            },
-            onManageLibraries = { refreshData(); currentScreen = "manageLibraries" },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "manageLibraries" -> LibraryManageScreen(
-            libraryInfoList = libraryInfoList,
-            onDeleteLibrary = { lib ->
-                scope.launch {
-                    repository.deleteLibrary(lib)
-                    if (selectedLibrary == lib) selectedLibrary = "İngilizce A1"
-                    refreshData()
-                }
-            },
-            onRenameLibrary = { old, new ->
-                scope.launch {
-                    repository.renameLibrary(old, new)
-                    if (selectedLibrary == old) selectedLibrary = new
-                    refreshData()
-                }
-            },
-            onExportLibrary = { lib ->
-                exportLibraryName = lib
-                exportLauncher.launch("${lib}.csv")
-            },
-            onBack = { refreshData(); currentScreen = "library" }
-        )
-
-        "level" -> LevelSelectScreen(
-            selectedLevel = selectedLevel,
-            onLevelSelected = {
-                selectedLevel = it
-                currentScreen = "learning"
-            },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "goal" -> GoalScreen(
-            currentGoal = dailyGoal?.targetCount ?: 10,
-            completed = dailyGoal?.completedCount ?: 0,
-            onSaveGoal = {
-                scope.launch {
-                    repository.setTodayGoal(it)
-                    refreshData()
-                    currentScreen = "learning"
-                }
-            },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "stats" -> StatsScreen(
-            libraryInfoList = libraryInfoList,
-            totalLibraries = totalLibraries,
-            totalWords = totalWordsOverall,
-            totalLearned = totalLearnedOverall,
-            onBack = { currentScreen = "learning" }
-        )
-
-        "quiz" -> QuizScreen(
-            session = quizSession,
-            memorizationThreshold = memorizationThreshold,
-            onAnswerCorrect = { question: Question ->
-                scope.launch {
-                    repository.incrementQuizCorrect(question.word)
-                    repository.recordQuizStat(true)
-                }
-            },
-            onAnswerWrong = { question: Question ->
-                scope.launch {
-                    repository.recordQuizWrong(question.word)
-                    repository.recordQuizStat(false)
-                }
-            },
-            onMarkLearned = { question: Question ->
-                scope.launch {
-                    repository.markAsLearned(question.word)
-                }
-            },
-            onSpeak = onSpeak,
-            onPlayCorrectSound = { soundManager.playCorrect() },
-            onPlayWrongSound = { soundManager.playWrong() },
-            isSoundMuted = soundManager.isMuted,
-            onToggleMute = {
-                soundManager.isMuted = !soundManager.isMuted
-            },
-            onRestartQuiz = {
-                scope.launch {
-                    val unlearned = repository.getUnlearnedWords(selectedLibrary, randomOrder)
-                    val quizQuestions = quizGenerator.generateQuestions(unlearned)
-                    val questions = quizQuestions.map { q ->
-                        Question(
-                            word = q.word,
-                            options = q.options,
-                            correctAnswer = q.correctAnswer
-                        )
-                    }
-                    quizSession.start(questions, quizQuestionCount)
-                }
-            },
-            onBack = {
-                quizSession.isRunning = false
-                currentScreen = "learning"
-                refreshData()
-            }
-        )
-
-        "import" -> ImportScreen(
-            onCsvImportClick = { name -> pendingLibraryName = name; csvLauncher.launch("text/*") },
-            onExcelImportClick = { name -> pendingLibraryName = name; excelLauncher.launch("*/*") },
-            onLingoesImportClick = { name -> pendingLibraryName = name; lingoesLauncher.launch("text/*") },
-            onBack = { currentScreen = "learning" }
-        )
-
-        "packs" -> WordPackScreen(
-            packs = packs,
-            onInstallPack = { pack ->
-                scope.launch {
-                    repository.addWords(
-                        pack.words.map {
-                            Word(
-                                word = it.word,
-                                meaning = it.meaning,
-                                example = it.example,
-                                library = pack.name,
-                                level = pack.level
-                            )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            // ═══════════════════════════════════════════
+            // ÜST BİLGİ: Kütüphane, Seviye, Kelime Sayısı
+            // ═══════════════════════════════════════════
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Kütüphane seçimi
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = onLibraryClick, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.LibraryBooks, contentDescription = null, modifier = Modifier.size(20.dp))
                         }
-                    )
-                    selectedLibrary = pack.name
-                    selectedLevel = pack.level
-                    refreshData()
-                    currentScreen = "learning"
-                }
-            },
-            onInstallAll = {
-                scope.launch {
-                    packs.forEach { pack ->
-                        repository.addWords(
-                            pack.words.map {
-                                Word(
-                                    word = it.word,
-                                    meaning = it.meaning,
-                                    example = it.example,
-                                    library = pack.name,
-                                    level = pack.level
-                                )
-                            }
+                        Text(selectedLibrary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    // Seviye
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = onLevelClick, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(20.dp))
+                        }
+                        Text(selectedLevel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    // Kelime sayısı
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("$totalWordCount", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    // Günlük hedef
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = onGoalClick, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.TrackChanges, contentDescription = null, modifier = Modifier.size(20.dp))
+                        }
+                        Text(
+                            "${dailyGoal?.completedCount ?: 0}/${dailyGoal?.targetCount ?: 10}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                    refreshData()
-                    currentScreen = "learning"
                 }
-            },
-            onBack = { currentScreen = "learning" }
-        )
+            }
 
-        "wrong" -> WrongWordsScreen(
-            words = wrongWords,
-            onBack = { currentScreen = "learning" }
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        "settings" -> SettingsScreen(
-            quizQuestionCount = quizQuestionCount,
-            randomOrder = randomOrder,
-            memorizationThreshold = memorizationThreshold,
-            darkMode = darkMode,
-            onQuizQuestionCountChange = {
-                quizQuestionCount = it
-                settings.quizQuestionCount = it
-            },
-            onRandomOrderChange = {
-                randomOrder = it
-                settings.randomOrder = it
-            },
-            onMemorizationThresholdChange = {
-                memorizationThreshold = it
-                settings.memorizationThreshold = it
-            },
-            onDarkModeChange = {
-                darkMode = it
-                settings.darkMode = it
-                onDarkModeChange(it)
-            },
-            onBack = { currentScreen = "learning" }
-        )
+            // ═══════════════════════════════════════════
+            // KELİME LİSTESİ (tıklanabilir, düzenlenebilir)
+            // ═══════════════════════════════════════════
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
+                items(words) { w ->
+                    var expanded by remember { mutableStateOf(false) }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable {
+                                // Tıklayınca kartı çevir / düzenle dialogu aç
+                                onWordClick(w)
+                            },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(w.word, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text(
+                                        text = formatMultiMeanings(w.meaning),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                        maxLines = if (expanded) Int.MAX_VALUE else 2
+                                    )
+                                }
+
+                                // ★ Çark ikonu - Düzenle/Sil
+                                IconButton(onClick = { onWordLongClick(w) }) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Düzenle/Sil",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // Genişletme oku
+                            if (w.meaning.split("|||").size > 1 || w.example.isNotBlank()) {
+                                TextButton(
+                                    onClick = { expanded = !expanded },
+                                    modifier = Modifier.padding(0.dp)
+                                ) {
+                                    Text(
+                                        if (expanded) "Daha az göster" else "Daha fazla göster",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                if (expanded && w.example.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = formatMultiExamples(w.example),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ═══════════════════════════════════════════
+            // HIZLI İŞLEM BUTONLARI
+            // ═══════════════════════════════════════════
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Quiz butonu
+                Button(
+                    onClick = onQuizClick,
+                    modifier = Modifier.weight(1f)
+                ) { Text("❓ Quiz") }
+
+                // Kelime Ekle
+                OutlinedButton(
+                    onClick = onAddWordClick,
+                    modifier = Modifier.weight(1f)
+                ) { Text("➕ Ekle") }
+
+                // Kelime Listesi
+                OutlinedButton(
+                    onClick = onWordListClick,
+                    modifier = Modifier.weight(1f)
+                ) { Text("📋 Liste") }
+            }
+        }
     }
 }
