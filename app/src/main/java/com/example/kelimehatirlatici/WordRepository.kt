@@ -152,7 +152,7 @@ class WordRepository(private val wordDao: WordDao) {
     private fun today() = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
     // ═══════════════════════════════════════════════════════════════════════
-    // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
+    // YENİ: KELİME DÜZENLEME METODLARI
     // ═══════════════════════════════════════════════════════════════════════
 
     suspend fun getWordById(id: Int): Word? = wordDao.getWordById(id)
