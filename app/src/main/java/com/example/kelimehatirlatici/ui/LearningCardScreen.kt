@@ -484,45 +484,48 @@ fun LearningCardScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
                     ) { Text("🗑 Sil") }
                 } else {
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    val trimmedWord = editWord.trim()
-                                    val trimmedMeaning = editMeaning.trim()
-                                    val trimmedExample = editExample.trim()
+                   Button(
+    onClick = {
+        coroutineScope.launch {
+            try {
+                val trimmedWord = editWord.trim()
+                val trimmedMeaning = editMeaning.trim()
+                val trimmedExample = editExample.trim()
 
-                                    when (editMode) {
-                                        "update" -> {
-                                            wordRepository.updateWordFull(
-                                                id = word.id,
-                                                newWord = trimmedWord,
-                                                newMeaning = trimmedMeaning,
-                                                newExample = trimmedExample,
-                                                newLevel = editLevel,
-                                                newLibrary = editLibrary
-                                            )
-                                            editMessage = "✅ Kelime güncellendi!"
-                                        }
-                                        "copy" -> {
-                                            val success = wordRepository.copyWordToLibrary(
-                                                word = word.copy(word = trimmedWord, meaning = trimmedMeaning, example = trimmedExample, level = editLevel),
-                                                targetLibrary = editLibrary
-                                            )
-                                            editMessage = if (success) "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!" else "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
-                                        }
-                                        "move" -> {
-                                            wordRepository.updateWordFull(
-                                                id = word.id,
-                                                newWord = trimmedWord,
-                                                newMeaning = trimmedMeaning,
-                                                newExample = trimmedExample,
-                                                newLevel = editLevel,
-                                                newLibrary = editLibrary
-                                            )
-                                            editMessage = "✅ Kelime \"$editLibrary\" kütüphanesine taşındı!"
-                                        }
-                                    }
+                // ★ YENİ: Seviye boş veya "Tümü" ise "Genel" yap ★
+                val finalLevel = if (editLevel.isBlank() || editLevel == "Tümü") "Genel" else editLevel
+
+                when (editMode) {
+                    "update" -> {
+                        wordRepository.updateWordFull(
+                            id = word.id,
+                            newWord = trimmedWord,
+                            newMeaning = trimmedMeaning,
+                            newExample = trimmedExample,
+                            newLevel = finalLevel,    // ★ editLevel → finalLevel
+                            newLibrary = editLibrary
+                        )
+                        editMessage = "✅ Kelime güncellendi!"
+                    }
+                    "copy" -> {
+                        val success = wordRepository.copyWordToLibrary(
+                            word = word.copy(word = trimmedWord, meaning = trimmedMeaning, example = trimmedExample, level = finalLevel),  // ★ editLevel → finalLevel
+                            targetLibrary = editLibrary
+                        )
+                        editMessage = if (success) "✅ Kelime \"$editLibrary\" kütüphanesine kopyalandı!" else "⚠️ Bu kelime zaten \"$editLibrary\" kütüphanesinde var!"
+                    }
+                    "move" -> {
+                        wordRepository.updateWordFull(
+                            id = word.id,
+                            newWord = trimmedWord,
+                            newMeaning = trimmedMeaning,
+                            newExample = trimmedExample,
+                            newLevel = finalLevel,    // ★ editLevel → finalLevel
+                            newLibrary = editLibrary
+                        )
+                        editMessage = "✅ Kelime \"$editLibrary\" kütüphanesine taşındı!"
+                    }
+                }
                                     showEditSuccess = true
                                     kotlinx.coroutines.delay(1500)
                                     showEditDialog = false
