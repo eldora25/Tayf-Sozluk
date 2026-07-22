@@ -20,12 +20,12 @@ import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 
-// ★ Yeni: ||| ile ayrılmış çoklu değerleri listeye çevirir
+// Çoklu değerleri listeye çevirir
 private fun parseMultiValue(text: String): List<String> {
     return text.split("|||").map { it.trim() }.filter { it.isNotBlank() }
 }
 
-// ★ Yeni: Çoklu anlamları alt alta görüntüleme
+// Çoklu anlamları alt alta görüntüleme
 private fun formatMultiMeanings(meaning: String): String {
     val parts = parseMultiValue(meaning)
     return if (parts.size > 1) {
@@ -35,7 +35,7 @@ private fun formatMultiMeanings(meaning: String): String {
     }
 }
 
-// ★ Yeni: Çoklu örnekleri alt alta görüntüleme
+// Çoklu örnekleri alt alta görüntüleme
 private fun formatMultiExamples(example: String): String {
     val parts = parseMultiValue(example)
     return if (parts.size > 1) {
@@ -73,7 +73,7 @@ fun LearningCardScreen(
     var isFlipped by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
-    // ★ Düzeltme: density'i LocalDensity ile al
+    // ★ Düzeltme: density'i LocalDensity ile al - build hatasını çözer
     val density = LocalDensity.current.density
 
     val flipRotation = animateFloatAsState(
@@ -117,16 +117,19 @@ fun LearningCardScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Bilgi satırı - üstte kütüphane, seviye, kelime sayısı
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Kütüphane: $selectedLibrary", style = MaterialTheme.typography.labelMedium)
                 Text("Seviye: $selectedLevel", style = MaterialTheme.typography.labelMedium)
+                Text("$totalWordCount kelime", style = MaterialTheme.typography.labelMedium)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Günlük hedef kartı
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -148,36 +151,60 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ★ Düzeltme: density değişkeni LocalDensity'den alınıyor
+            // ★ KART - tıklanabilir, çevrilebilir
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
                     .graphicsLayer(
                         rotationY = flipRotation.value,
-                        cameraDistance = 8f * density
+                        cameraDistance = 8f * density   // ★ LocalDensity'den alındı
                     ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                onClick = { isFlipped = !isFlipped }
+                onClick = { isFlipped = !isFlipped }   // ★ Tıklanabilir - kart çevirme
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     if (flipRotation.value < 90f) {
-                        // ÖN YÜZ: Kelime
+                        // ═══ ÖN YÜZ: Kelime + TTS butonu ═══
                         Column(
                             modifier = Modifier.fillMaxSize().padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             if (word != null) {
+                                // ★ KELİME (büyük puntoda)
                                 Text(
                                     text = word.word,
-                                    fontSize = 32.sp,
+                                    fontSize = 36.sp,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // ★ TTS BUTONU - kelimeyi okur
+                                OutlinedButton(
+                                    onClick = { onSpeakClick(word.word) }
+                                ) {
+                                    Icon(
+                                        Icons.Default.VolumeUp,
+                                        contentDescription = "Dinle",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Dinle", fontSize = 14.sp)
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    "Karta dokunarak çevirin",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
                                 )
                             } else {
                                 Text(
@@ -189,7 +216,7 @@ fun LearningCardScreen(
                             }
                         }
                     } else {
-                        // ARKA YÜZ: Anlam ve Örnek
+                        // ═══ ARKA YÜZ: Anlam + Örnek ═══
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -199,7 +226,7 @@ fun LearningCardScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (word != null) {
-                                // ★ Değişiklik: Çoklu anlamları alt alta • ile göster
+                                // ★ Çoklu anlamları alt alta • ile göster
                                 Text(
                                     text = formatMultiMeanings(word.meaning),
                                     fontSize = 20.sp,
@@ -208,7 +235,7 @@ fun LearningCardScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
 
-                                // ★ Değişiklik: Çoklu örnekleri alt alta • ile göster
+                                // ★ Çoklu örnekleri alt alta • ile göster
                                 if (word.example.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(16.dp))
                                     HorizontalDivider()
@@ -243,21 +270,25 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Butonlar
             if (word != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Konuşma butonu (tekil)
                     OutlinedButton(
                         onClick = { onSpeakClick(word.word) },
                         modifier = Modifier.weight(1f)
                     ) { Text("🔊") }
 
+                    // Bilmiyorum
                     OutlinedButton(
                         onClick = { isFlipped = true },
                         modifier = Modifier.weight(1f)
                     ) { Text("❓ Bilmiyorum") }
 
+                    // Yanlış
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -269,6 +300,7 @@ fun LearningCardScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                     ) { Text("❌ Yanlış") }
 
+                    // Biliyorum
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -285,9 +317,17 @@ fun LearningCardScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (word != null && !isFlipped) {
-                Text("Karta dokunarak çevirin", fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    "Karta dokunarak çevirin",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
             } else if (word != null) {
-                Text("Butonlardan birine basın", fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    "Butonlardan birine basın",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
             }
         }
     }
