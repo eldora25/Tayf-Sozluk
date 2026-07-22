@@ -369,20 +369,20 @@ fun LearningCardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ── SEVİYE ──
-                    val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2")
-                    Text("Seviye", fontSize = 14.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        levels.forEach { level ->
-                            FilterChip(
-                                selected = editLevel == level,
-                                onClick = { editLevel = level },
-                                label = { Text(level, fontSize = 12.sp) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+                                                   // ── SEVİYE (A1, A2, B1, B2, C1, C2, Genel) ──
+                                val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
+                                Text("Seviye", fontSize = 14.sp, color = Color.Gray)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    levels.forEach { level ->
+                                        FilterChip(
+                                            selected = editLevel == level,
+                                            onClick = { editLevel = level },
+                                            label = { Text(level, fontSize = 11.sp) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // ── KÜTÜPHANE SEÇİMİ ──
