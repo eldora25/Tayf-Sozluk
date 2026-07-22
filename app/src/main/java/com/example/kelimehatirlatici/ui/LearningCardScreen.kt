@@ -1,9 +1,14 @@
 package com.example.kelimehatirlatici.ui
+import com.example.kelimehatirlatici.ui.GifImage
 
-import android.content.res.Configuration
+import android.graphics.drawable.AnimatedImageDrawable
+import android.os.Build
+import android.widget.ImageView
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,14 +20,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kelimehatirlatici.BuildConfig
+import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.kelimehatirlatici.BuildConfig   // ★ YENİ İMPORT
 import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.WordRepository
 import com.example.kelimehatirlatici.data.AppDatabase
@@ -66,14 +74,16 @@ fun LearningCardScreen(
 
     var menuExpanded by remember { mutableStateOf(false) }
 
-    // ══════════ Düzenleme Dialog State'leri ══════════
+    // ═══════════════════════════════════════════════════════
+    // KELİME DÜZENLEME STATE'LERİ
+    // ═══════════════════════════════════════════════════════
     var showEditDialog by remember { mutableStateOf(false) }
     var editWord by remember(word?.word) { mutableStateOf(word?.word ?: "") }
     var editMeaning by remember(word?.meaning) { mutableStateOf(word?.meaning ?: "") }
     var editExample by remember(word?.example) { mutableStateOf(word?.example ?: "") }
     var editLevel by remember(word?.level) { mutableStateOf(word?.level ?: "A1") }
     var editLibrary by remember(word?.library) { mutableStateOf(word?.library ?: selectedLibrary) }
-    var editMode by remember { mutableStateOf("update") } // "update", "copy", "move"
+    var editMode by remember { mutableStateOf("update") }
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
 
@@ -82,14 +92,12 @@ fun LearningCardScreen(
     val wordRepository = remember { WordRepository(AppDatabase.getInstance(context).wordDao()) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    // Kütüphane listesini al
     LaunchedEffect(showEditDialog) {
         if (showEditDialog) {
             libraries = wordRepository.getLibraries()
         }
     }
 
-    // Seçilen kelime değişince dialog state'lerini güncelle
     LaunchedEffect(word) {
         editWord = word?.word ?: ""
         editMeaning = word?.meaning ?: ""
@@ -155,7 +163,6 @@ fun LearningCardScreen(
             val target = dailyGoal?.targetCount ?: 10
             val progress = if (target > 0) completed.toFloat() / target.toFloat() else 0f
 
-            // Günlük hedef çubuğu
             Text(text = "Günlük hedef: $completed / $target", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
@@ -166,7 +173,7 @@ fun LearningCardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Menüden Paketler bölümünden hazır kelimeleri yükleyebilir veya yeni kelime ekleyebilirsin.", style = MaterialTheme.typography.bodyMedium)
             } else {
-                // ══════════ Çevrilebilir kelime kartı ══════════
+                // Çevrilebilir kelime kartı
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -233,9 +240,14 @@ fun LearningCardScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ══════════ ALT BUTONLAR ══════════
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-
+                // ═══════════════════════════════════════════════════════════
+                // ALT BUTONLAR (Çark + Biliyorum + Tekrar)
+                // ═══════════════════════════════════════════════════════════
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     // ── ÇARK (DÜZENLEME) BUTONU ──
                     FilledTonalIconButton(
                         onClick = { showEditDialog = true },
@@ -300,7 +312,7 @@ fun LearningCardScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ══════════ VERSİYON NUMARASI ══════════
+            // ══════════ VERSİYON NUMARASI (DİNAMİK) ══════════
             Text(
                 text = "v:${BuildConfig.VERSION_NAME}        By: Tayfun Yamak ©",
                 fontSize = 15.sp,
@@ -313,9 +325,9 @@ fun LearningCardScreen(
         }
     }
 
-    // ════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     // KELİME DÜZENLEME DİALOGU
-    // ════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
     if (showEditDialog && word != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -478,19 +490,11 @@ fun LearningCardScreen(
 
                     if (editMode == "copy") {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Kelime seçilen kütüphaneye kopyalanacak, orijinali kalacak.",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
+                        Text("Kelime seçilen kütüphaneye kopyalanacak, orijinali kalacak.", fontSize = 12.sp, color = Color.Gray)
                     }
                     if (editMode == "move") {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Kelime seçilen kütüphaneye taşınacak, orijinali silinecek.",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
+                        Text("Kelime seçilen kütüphaneye taşınacak.", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
             },
