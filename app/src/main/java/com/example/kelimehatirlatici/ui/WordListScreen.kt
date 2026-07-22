@@ -33,7 +33,7 @@ fun WordListScreen(
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
 
-    // ★ YENİ: Silme onay dialogu için
+    // Silme onay dialogu
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -64,7 +64,7 @@ fun WordListScreen(
                                         color = Color(0xFF1976D2)
                                     )
                                 }
-                                // ── DÜZENLEME BUTONU ──
+                                // Düzenleme butonu
                                 IconButton(onClick = {
                                     editingWord = w
                                     editWordText = w.word
@@ -88,7 +88,7 @@ fun WordListScreen(
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ★ ★ ★ GÜNCELLENMİŞ DÜZENLEME DİALOGU (Sil seçeneği eklendi) ★ ★ ★
+    // DÜZENLEME DİALOGU (Güncelle / Sil seçenekli)
     // ════════════════════════════════════════════════════════════════
     if (editingWord != null) {
         AlertDialog(
@@ -103,19 +103,19 @@ fun WordListScreen(
             },
             text = {
                 Column {
-                    // ── KELİME ──
+                    // Kelime
                     OutlinedTextField(value = editWordText, onValueChange = { editWordText = it }, label = { Text("Kelime") }, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ── ANLAM ──
+                    // Anlam
                     OutlinedTextField(value = editMeaningText, onValueChange = { editMeaningText = it }, label = { Text("Anlam") }, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ── ÖRNEK CÜMLE ──
+                    // Örnek Cümle
                     OutlinedTextField(value = editExampleText, onValueChange = { editExampleText = it }, label = { Text("Örnek Cümle") }, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ── SEVİYE SEÇİMİ ──
+                    // Seviye seçimi
                     Text("Seviye", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
                     val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
@@ -134,7 +134,7 @@ fun WordListScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ── İŞLEM TÜRÜ (Güncelle / Sil) ──
+                    // İşlem türü (Güncelle / Sil)
                     Text("İşlem Türü", fontSize = 14.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -160,34 +160,29 @@ fun WordListScreen(
                     }
 
                     // İşlem açıklaması
-                    when (editMode) {
-                        "delete" -> {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("Kelime tamamen silinecek! Bu işlem geri alınamaz.", fontSize = 12.sp, color = Color(0xFFD32F2F))
-                        }
+                    if (editMode == "delete") {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Kelime tamamen silinecek! Bu işlem geri alınamaz.", fontSize = 12.sp, color = Color(0xFFD32F2F))
                     }
                 }
             },
             confirmButton = {
                 if (editMode == "delete") {
-                    // ★ Sil butonu kırmızı, onay dialogunu açar
+                    // Sil - önce düzenleme dialogunu kapat, onay dialogunu aç
                     Button(
-                        onClick = {
-                            // Önce düzenleme dialogunu kapat, sonra onay dialogunu aç
-                            showDeleteConfirm = true
-                        },
+                        onClick = { showDeleteConfirm = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFD32F2F),
                             contentColor = Color.White
                         )
                     ) { Text("🗑 Sil") }
                 } else {
+                    // Güncelle
                     Button(
                         onClick = {
                             val id = editingWord!!.id
                             val finalLevel = if (editLevelText.isBlank()) "Genel" else editLevelText
-                            val msg = "✅ Kelime güncellendi!"
-                            editMessage = msg
+                            editMessage = "✅ Kelime güncellendi!"
                             showEditSuccess = true
                             editingWord = null
                             onUpdateWord(id, editWordText.trim(), editMeaningText.trim(), editExampleText.trim(), finalLevel)
@@ -203,7 +198,7 @@ fun WordListScreen(
     }
 
     // ════════════════════════════════════════════════════════════════
-    // ★ YENİ: SİLME ONAY DİALOGU
+    // SİLME ONAY DİALOGU
     // ════════════════════════════════════════════════════════════════
     if (showDeleteConfirm && editingWord != null) {
         AlertDialog(
