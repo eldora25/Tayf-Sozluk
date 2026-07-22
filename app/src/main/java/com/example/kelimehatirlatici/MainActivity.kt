@@ -1,90 +1,270 @@
 package com.example.kelimehatirlatici
 
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import com.example.kelimehatirlatici.data.AppDatabase
-import com.example.kelimehatirlatici.tts.TtsManager
-
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF1976D2),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFBBDEFB),
-    secondary = Color(0xFF7B1FA2),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE1BEE7),
-    surface = Color(0xFFFFFBFE),
-    onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFF5F0F7),
-    background = Color(0xFFFAFAFA),
-    onBackground = Color(0xFF1C1B1F),
-    error = Color(0xFFF44336),
-    onError = Color.White
-)
-
-private val DarkColors = darkColorScheme(
-    primary = Color(0xFF90CAF9),
-    onPrimary = Color(0xFF0D47A1),
-    primaryContainer = Color(0xFF1565C0),
-    secondary = Color(0xFFCE93D8),
-    onSecondary = Color(0xFF4A148C),
-    secondaryContainer = Color(0xFF7B1FA2),
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFE6E1E5),
-    surfaceVariant = Color(0xFF2D2D2D),
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE6E1E5),
-    error = Color(0xFFEF9A9A),
-    onError = Color(0xFF690005)
-)
+import com.example.kelimehatirlatici.data.DailyGoal
+import com.example.kelimehatirlatici.data.Word
+import com.example.kelimehatirlatici.quiz.*
+import com.example.kelimehatirlatici.ui.*
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var ttsManager: TtsManager
+    private lateinit var tts: TextToSpeech
+    private lateinit var database: AppDatabase
     private lateinit var repository: WordRepository
-    private lateinit var settings: AppSettings
-    private lateinit var soundManager: SoundManager
+    private lateinit var quizGenerator: QuizGenerator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        ttsManager = TtsManager(this)
-        val dao = AppDatabase.getDatabase(this).wordDao()
-        repository = WordRepository(dao)
-        settings = AppSettings(this)
-        soundManager = SoundManager(this)
+        database = AppDatabase.getDatabase(this)
+        repository = WordRepository(database.wordDao())
+        quizGenerator = QuizGenerator(repository)
+
+        tts = TextToSpeech(this) { status ->
+            if (status != TextToSpeech.ERROR) {
+                tts.language = Locale.US
+            }
+        }
 
         setContent {
-            // darkMode state'i burada tutulur, değişince MaterialTheme yeniden oluşur
-            var darkMode by remember { mutableStateOf(settings.darkMode) }
+            MaterialTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainScreen()
+                }
+            }
+        }
+    }
 
-            MaterialTheme(
-                colorScheme = if (darkMode) DarkColors else LightColors
-            ) {
+    private fun speak(text: String) {
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+    }
+
+    @Composable
+    private fun MainScreen() {
+        val coroutineScope = rememberCoroutineScope()
+
+        // Durum değişkenleri
+        var selectedLibrary by remember { mutableStateOf("Genel") }
+        var selectedLevel by remember { mutableStateOf("Genel") }
+        var words by remember { mutableStateOf<List<Word>>(emptyList()) }
+        var currentWordIndex by remember { mutableIntStateOf(0) }
+        var currentWord by remember { mutableStateOf<Word?>(null) }
+        var currentScreen by remember { mutableStateOf("main") }
+        var libraries by remember { mutableStateOf<List<String>>(listOf("Genel")) }
+        var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
+        var quizSession by remember { mutableStateOf<QuizSession?>(null) }
+        var isSoundMuted by remember { mutableStateOf(false) }
+
+        // Verileri yükle
+        LaunchedEffect(selectedLibrary, selectedLevel) {
+            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+            currentWordIndex = 0
+            currentWord = words.firstOrNull()
+            libraries = repository.getAllLibraries()
+            dailyGoal = repository.getDailyGoal()
+        }
+
+        // Ekran yönlendirme
+        when (currentScreen) {
+            "main" -> {
                 AppScreen(
-                    repository = repository,
-                    settings = settings,
-                    context = this,
-                    onSpeak = { text -> ttsManager.speak(text) },
-                    soundManager = soundManager,
-                    onDarkModeChange = { newValue ->
-                        darkMode = newValue
+                    words = words,
+                    word = currentWord,
+                    selectedLibrary = selectedLibrary,
+                    selectedLevel = selectedLevel,
+                    totalWordCount = words.size,
+                    dailyGoal = dailyGoal,
+                    isFlipped = false,
+                    memorizationThreshold = 3,
+                    onKnownClick = {
+                        currentWord?.let { w ->
+                            coroutineScope.launch {
+                                repository.markAsKnown(w.id)
+                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                currentWordIndex = (currentWordIndex + 1) % words.size
+                                currentWord = words.getOrNull(currentWordIndex)
+                                dailyGoal = repository.getDailyGoal()
+                            }
+                        }
+                    },
+                    onWrongClick = {
+                        currentWord?.let { w ->
+                            coroutineScope.launch {
+                                repository.markAsWrong(w.id)
+                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                currentWordIndex = (currentWordIndex + 1) % words.size
+                                currentWord = words.getOrNull(currentWordIndex)
+                            }
+                        }
+                    },
+                    onFlip = { },
+                    onSpeakClick = { word -> speak(word) },
+                    onAddWordClick = { currentScreen = "addWord" },
+                    onWordListClick = { currentScreen = "wordList" },
+                    onLibraryClick = { currentScreen = "library" },
+                    onLevelClick = { currentScreen = "level" },
+                    onGoalClick = { currentScreen = "goal" },
+                    onStatsClick = { currentScreen = "stats" },
+                    onQuizClick = {
+                        coroutineScope.launch {
+                            val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            if (wordsForQuiz.isNotEmpty()) {
+                                val questions = quizGenerator.generateQuestions(wordsForQuiz)
+                                if (questions.isNotEmpty()) {
+                                    quizSession = QuizSession(questions.map { Question(it) })
+                                    currentScreen = "quiz"
+                                }
+                            }
+                        }
+                    },
+                    onImportClick = { currentScreen = "import" },
+                    onPacksClick = { currentScreen = "packs" },
+                    onWrongWordsClick = { currentScreen = "wrongWords" },
+                    onSettingsClick = { currentScreen = "settings" },
+                    onWordClick = { word ->
+                        // Kelimeye tıklanınca detay sayfasına git
+                        currentWord = word
+                    },
+                    onWordLongClick = { word ->
+                        // Uzun tıklamada düzenleme dialogu
+                        currentWord = word
                     }
                 )
+            }
+            "addWord" -> {
+                AddWordScreen(
+                    libraries = libraries,
+                    onSave = { word, meaning, example, library, level ->
+                        coroutineScope.launch {
+                            repository.addWord(Word(word = word, meaning = meaning, example = example, library = library, level = level))
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            currentScreen = "main"
+                        }
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "wordList" -> {
+                WordListScreen(
+                    words = words,
+                    onUpdateWord = { id, word, meaning, example, level ->
+                        coroutineScope.launch {
+                            repository.updateWord(id, word, meaning, example, level)
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                        }
+                    },
+                    onDeleteWord = { id ->
+                        coroutineScope.launch {
+                            repository.deleteWord(id)
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                        }
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "library" -> {
+                LibrarySelectScreen(
+                    libraries = libraries,
+                    selectedLibrary = selectedLibrary,
+                    onSelect = { lib ->
+                        selectedLibrary = lib
+                        currentScreen = "main"
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "level" -> {
+                LevelSelectScreen(
+                    selectedLevel = selectedLevel,
+                    onSelect = { lvl ->
+                        selectedLevel = lvl
+                        currentScreen = "main"
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "goal" -> {
+                GoalScreen(
+                    dailyGoal = dailyGoal,
+                    onSave = { target ->
+                        coroutineScope.launch {
+                            repository.setDailyGoal(target)
+                            dailyGoal = repository.getDailyGoal()
+                            currentScreen = "main"
+                        }
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "quiz" -> {
+                quizSession?.let { session ->
+                    QuizScreen(
+                        session = session,
+                        memorizationThreshold = 3,
+                        onAnswerCorrect = { question ->
+                            coroutineScope.launch {
+                                repository.incrementQuizCorrect(question.word.id)
+                            }
+                        },
+                        onAnswerWrong = { question ->
+                            coroutineScope.launch {
+                                repository.incrementQuizWrong(question.word.id)
+                            }
+                        },
+                        onMarkLearned = { question ->
+                            coroutineScope.launch {
+                                repository.markAsKnown(question.word.id)
+                            }
+                        },
+                        onSpeak = { word -> speak(word) },
+                        onPlayCorrectSound = { /* TODO */ },
+                        onPlayWrongSound = { /* TODO */ },
+                        isSoundMuted = isSoundMuted,
+                        onToggleMute = { isSoundMuted = !isSoundMuted },
+                        onRestartQuiz = {
+                            coroutineScope.launch {
+                                val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                if (wordsForQuiz.isNotEmpty()) {
+                                    val questions = quizGenerator.generateQuestions(wordsForQuiz)
+                                    if (questions.isNotEmpty()) {
+                                        quizSession = QuizSession(questions.map { Question(it) })
+                                    }
+                                }
+                            }
+                        },
+                        onBack = { currentScreen = "main" }
+                    )
+                }
+            }
+            "wrongWords" -> {
+                WrongWordsScreen(
+                    words = words.filter { it.wrongCount > 0 },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            else -> {
+                // Bilinmeyen ekran, ana sayfaya dön
+                currentScreen = "main"
             }
         }
     }
 
     override fun onDestroy() {
-        ttsManager.shutdown()
-        soundManager.release()
         super.onDestroy()
+        tts.stop()
+        tts.shutdown()
     }
 }
