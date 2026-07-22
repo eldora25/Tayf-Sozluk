@@ -82,14 +82,11 @@ interface WordDao {
     @Query("SELECT * FROM study_stats WHERE date = :date LIMIT 1")
     suspend fun getStatsByDate(date: String): StudyStats?
 
-    // ####################################################################
-    // # YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
-    // ####################################################################
+    // ═══════════════════════════════════════════════════════════
+    // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
+    // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Kelimenin tüm alanlarını (word, meaning, example, level, library) tek sorguda günceller.
-     * Mevcut [updateWord]'den farkı: level ve library alanlarını da değiştirebilir.
-     */
+    /** Kelimenin tüm alanlarını (word, meaning, example, level, library) günceller */
     @Query("""
         UPDATE words 
         SET word = :newWord, 
@@ -103,41 +100,12 @@ interface WordDao {
         id: Int,
         newWord: String,
         newMeaning: String,
-        newExample: String?,
+        newExample: String,
         newLevel: String,
         newLibrary: String
     )
 
-    /**
-     * Sadece kelimenin kütüphanesini değiştirir (taşıma işlemi için).
-     */
+    /** Sadece kelimenin kütüphanesini değiştirir (taşıma işlemi için) */
     @Query("UPDATE words SET library = :newLibrary WHERE id = :id")
     suspend fun updateWordLibrary(id: Int, newLibrary: String)
-    kotlin
-// ═══════════════════════════════════════════════════════════════
-// YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
-// ═══════════════════════════════════════════════════════════════
-
-/** Kelimenin tüm alanlarını (word, meaning, example, level, library) günceller */
-@Query("""
-    UPDATE words 
-    SET word = :newWord, 
-        meaning = :newMeaning, 
-        example = :newExample, 
-        level = :newLevel, 
-        library = :newLibrary 
-    WHERE id = :id
-""")
-suspend fun updateWordFull(
-    id: Int,
-    newWord: String,
-    newMeaning: String,
-    newExample: String,
-    newLevel: String,
-    newLibrary: String
-)
-
-/** Sadece kelimenin kütüphanesini değiştirir (taşıma işlemi için) */
-@Query("UPDATE words SET library = :newLibrary WHERE id = :id")
-suspend fun updateWordLibrary(id: Int, newLibrary: String)
 }
