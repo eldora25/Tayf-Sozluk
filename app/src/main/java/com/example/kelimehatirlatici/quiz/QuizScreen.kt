@@ -1,6 +1,8 @@
 package com.example.kelimehatirlatici.quiz
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,19 +16,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kelimehatirlatici.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// ★ Yeni: Çoklu anlamdan sadece ilkini al
+// Yardımcı: Çoklu anlamdan sadece ilkini al
 private fun getFirstMeaning(meaning: String): String {
     return meaning.split("|||").firstOrNull()?.trim()?.ifBlank { meaning } ?: meaning
 }
 
-// ★ Yeni: Çoklu örnek cümleden sadece ilkini al
+// Yardımcı: Çoklu örnek cümleden sadece ilkini al
 private fun getFirstExample(example: String): String {
     return example.split("|||").firstOrNull()?.trim()?.ifBlank { example } ?: example
 }
@@ -58,6 +62,10 @@ fun QuizScreen(
     var correctCount by remember { mutableIntStateOf(0) }
     var wrongCount by remember { mutableIntStateOf(0) }
     var quizFinished by remember { mutableStateOf(false) }
+
+    // Animasyon durumları
+    var showCorrectAnimation by remember { mutableStateOf(false) }
+    var showWrongAnimation by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -102,7 +110,7 @@ fun QuizScreen(
                         formatTime(elapsedSeconds),
                         modifier = Modifier.padding(end = 8.dp)
                     )
-                    // ★ Düzeltme: R.drawable.sound_off/sound_on yerine Material Icon kullan
+                    // ★ Düzeltme: R.drawable.sound_off/sound_on yerine Material Icon
                     IconButton(onClick = onToggleMute) {
                         if (isSoundMuted) {
                             Icon(Icons.Default.VolumeOff, contentDescription = "Sesi Aç")
@@ -120,7 +128,9 @@ fun QuizScreen(
                 .padding(padding)
         ) {
             if (quizFinished) {
-                // ═══ QUIZ BİTTİ EKRANI ═══
+                // ══════════════════════════════════════════════════
+                // QUIZ BİTTİ EKRANI - Animasyonlu GIF
+                // ══════════════════════════════════════════════════
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -128,6 +138,29 @@ fun QuizScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    // Bitiş GIF animasyonu
+                    val totalQuestions = correctCount + wrongCount
+                    val pct = if (totalQuestions > 0) (correctCount * 100 / totalQuestions) else 0
+
+                    // GIF (drawable'da varsa)
+                    if (pct >= 70) {
+                        // Başarılı GIF
+                        Image(
+                            painter = painterResource(id = R.drawable.success_animation),
+                            contentDescription = "Başarılı",
+                            modifier = Modifier.size(150.dp)
+                        )
+                    } else {
+                        // Tekrar dene GIF
+                        Image(
+                            painter = painterResource(id = R.drawable.try_again_animation),
+                            contentDescription = "Tekrar Dene",
+                            modifier = Modifier.size(150.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
                         "🎉 Quiz Tamamlandı!",
                         fontSize = 28.sp,
@@ -185,8 +218,6 @@ fun QuizScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            val totalQuestions = correctCount + wrongCount
-                            val pct = if (totalQuestions > 0) (correctCount * 100 / totalQuestions) else 0
                             LinearProgressIndicator(
                                 progress = { pct / 100f },
                                 modifier = Modifier
@@ -214,6 +245,8 @@ fun QuizScreen(
                             showAnswer = false
                             selectedAnswer = null
                             isCorrect = null
+                            showCorrectAnimation = false
+                            showWrongAnimation = false
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("🔄 Tekrar Dene") }
@@ -223,7 +256,9 @@ fun QuizScreen(
                     OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Ana Sayfaya Dön") }
                 }
             } else if (currentQuestion != null) {
-                // ═══ SORU EKRANI ═══
+                // ══════════════════════════════════════════════════
+                // SORU EKRANI - Kelime üstte, TTS, altta seçenekler
+                // ══════════════════════════════════════════════════
                 val question = currentQuestion!!
 
                 Column(
@@ -233,6 +268,7 @@ fun QuizScreen(
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // İlerleme çubuğu
                     LinearProgressIndicator(
                         progress = { (currentIndex + 1).toFloat() / session.questions.size },
                         modifier = Modifier
@@ -244,6 +280,7 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Puan kartı
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -261,7 +298,7 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Kelime kartı - anlamı göster, kelimeyi sor
+                    // ★ KELİME KARTI - Kelime yazıyor, TTS okuyor
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -270,33 +307,34 @@ fun QuizScreen(
                             modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // ★ Değişiklik: Çoklu anlamdan sadece ilkini göster
+                            // KELİME (büyük puntoda)
                             Text(
-                                getFirstMeaning(question.word.meaning),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-
-                            // ★ Değişiklik: Çoklu örnek cümleden sadece ilkini göster
-                            if (question.word.example.isNotBlank()) {
-                                Text(
-                                    "\"${getFirstExample(question.word.example)}\"",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    modifier = Modifier.padding(bottom = 16.dp)
-                                )
-                            }
-
-                            Text(
-                                "?",
-                                fontSize = 48.sp,
+                                question.word.word,
+                                fontSize = 40.sp,
                                 fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.primary
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
 
+                            // TTS ile kelimeyi okut
+                            if (question.word.word.isNotBlank()) {
+                                Button(
+                                    onClick = { onSpeak(question.word.word) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                    )
+                                ) {
+                                    Icon(Icons.Default.VolumeUp, contentDescription = "Dinle")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Dinle", fontSize = 14.sp)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // İpucu (çoklu anlam varsa sadece ilkini göster)
                             Text(
                                 "Bu kelimenin anlamı nedir?",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -305,18 +343,9 @@ fun QuizScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    if (question.word.word.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = { onSpeak(question.word.word) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("🔊 ${question.word.word}") }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Şıklar
+                    // ★ SEÇENEKLER
                     question.options.forEachIndexed { index, option ->
                         val buttonColor = when {
                             showAnswer && option == question.correctAnswer -> Color(0xFF4CAF50)
@@ -337,33 +366,61 @@ fun QuizScreen(
                                     showAnswer = true
 
                                     if (isCorrect == true) {
+                                        // ★ DOĞRU ANİMASYONU
+                                        showCorrectAnimation = true
                                         onPlayCorrectSound()
                                         onAnswerCorrect(question)
+
+                                        // Memorization threshold
                                         if (question.word.quizCorrectCount + 1 >= memorizationThreshold) {
                                             showMarkAsLearnedDialog = true
                                         }
+
+                                        // 1 saniye sonra otomatik geç
+                                        coroutineScope.launch {
+                                            delay(1000)
+                                            showCorrectAnimation = false
+                                            correctCount++
+                                            val nextIndex = currentIndex + 1
+                                            if (nextIndex < session.questions.size) {
+                                                currentIndex = nextIndex
+                                                currentQuestion = session.questions[nextIndex]
+                                                showAnswer = false
+                                                selectedAnswer = null
+                                                isCorrect = null
+                                                session.correctCount = correctCount
+                                                session.wrongCount = wrongCount
+                                            } else {
+                                                quizFinished = true
+                                                session.correctCount = correctCount
+                                                session.wrongCount = wrongCount
+                                            }
+                                        }
                                     } else {
+                                        // ★ YANLIŞ ANİMASYONU - bekle, geçme
+                                        showWrongAnimation = true
                                         onPlayWrongSound()
                                         onAnswerWrong(question)
-                                    }
 
-                                    coroutineScope.launch {
-                                        delay(1500)
-                                        if (isCorrect == true) correctCount++ else wrongCount++
-
-                                        val nextIndex = currentIndex + 1
-                                        if (nextIndex < session.questions.size) {
-                                            currentIndex = nextIndex
-                                            currentQuestion = session.questions[nextIndex]
-                                            showAnswer = false
-                                            selectedAnswer = null
-                                            isCorrect = null
-                                            session.correctCount = correctCount
-                                            session.wrongCount = wrongCount
-                                        } else {
-                                            quizFinished = true
-                                            session.correctCount = correctCount
-                                            session.wrongCount = wrongCount
+                                        // 2 saniye sonra otomatik geç (yanlış da olsa geç)
+                                        coroutineScope.launch {
+                                            delay(2000)
+                                            showWrongAnimation = false
+                                            wrongCount++
+                                            val nextIndex = currentIndex + 1
+                                            if (nextIndex < session.questions.size) {
+                                                currentIndex = nextIndex
+                                                currentQuestion = session.questions[nextIndex]
+                                                showAnswer = false
+                                                selectedAnswer = null
+                                                isCorrect = null
+                                                session.correctCount = correctCount
+                                                session.wrongCount = wrongCount
+                                            } else {
+                                                quizFinished = true
+                                                session.correctCount = correctCount
+                                                session.wrongCount = wrongCount
+                                            }
                                         }
                                     }
                                 }
@@ -379,12 +436,64 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // ★ ANİMASYON GÖSTERİMİ
+                    if (showCorrectAnimation) {
+                        Image(
+                            painter = painterResource(id = R.drawable.correct_animation),
+                            contentDescription = "Doğru!",
+                            modifier = Modifier.size(100.dp).align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            "✅ Doğru!",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)
+                        )
+                    }
+
+                    if (showWrongAnimation) {
+                        Image(
+                            painter = painterResource(id = R.drawable.wrong_animation),
+                            contentDescription = "Yanlış!",
+                            modifier = Modifier.size(100.dp).align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            "❌ Yanlış! Doğru cevap: ${question.correctAnswer}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD32F2F),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Cevabı Göster butonu (eğer henüz cevap verilmediyse)
                     if (!showAnswer) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = {
                                 showAnswer = true
+                                showWrongAnimation = true
                                 onPlayWrongSound()
                                 onAnswerWrong(question)
+                                coroutineScope.launch {
+                                    delay(2000)
+                                    showWrongAnimation = false
+                                    wrongCount++
+                                    val nextIndex = currentIndex + 1
+                                    if (nextIndex < session.questions.size) {
+                                        currentIndex = nextIndex
+                                        currentQuestion = session.questions[nextIndex]
+                                        showAnswer = false
+                                        selectedAnswer = null
+                                        isCorrect = null
+                                        session.correctCount = correctCount
+                                        session.wrongCount = wrongCount
+                                    } else {
+                                        quizFinished = true
+                                        session.correctCount = correctCount
+                                        session.wrongCount = wrongCount
+                                    }
+                                }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("Cevabı Göster") }
