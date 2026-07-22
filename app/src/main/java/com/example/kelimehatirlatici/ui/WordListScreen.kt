@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -145,7 +146,7 @@ fun WordListScreen(
                             selected = editMode == "update",
                             onClick = { editMode = "update" },
                             label = { Text("Güncelle", fontSize = 12.sp) },
-                            leadingIcon = { if (editMode == "update") Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { if (editMode == "update") Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
@@ -168,7 +169,6 @@ fun WordListScreen(
             },
             confirmButton = {
                 if (editMode == "delete") {
-                    // Sil - önce düzenleme dialogunu kapat, onay dialogunu aç
                     Button(
                         onClick = { showDeleteConfirm = true },
                         colors = ButtonDefaults.buttonColors(
@@ -177,7 +177,6 @@ fun WordListScreen(
                         )
                     ) { Text("🗑 Sil") }
                 } else {
-                    // Güncelle
                     Button(
                         onClick = {
                             val id = editingWord!!.id
