@@ -48,16 +48,12 @@ interface WordDao {
     suspend fun getUnlearnedWordsRandom(library: String): List<Word>
 
     // ══════════ YENİ SORGULAR ══════════
-
-    /** Kelime eklemeden önce aynı kütüphanede var mı kontrolü */
     @Query("SELECT COUNT(*) FROM words WHERE library = :library AND word = :word")
     suspend fun countByLibraryAndWord(library: String, word: String): Int
 
-    /** Tüm kelimeleri getir (dışa aktarma için) */
     @Query("SELECT * FROM words WHERE library = :library ORDER BY word ASC")
     suspend fun getWordsByLibrary(library: String): List<Word>
 
-    /** Kelime ID'sine göre getir */
     @Query("SELECT * FROM words WHERE id = :id LIMIT 1")
     suspend fun getWordById(id: Int): Word?
 
@@ -85,8 +81,6 @@ interface WordDao {
     // ═══════════════════════════════════════════════════════════
     // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
     // ═══════════════════════════════════════════════════════════
-
-    /** Kelimenin tüm alanlarını (word, meaning, example, level, library) günceller */
     @Query("""
         UPDATE words 
         SET word = :newWord, 
@@ -105,7 +99,6 @@ interface WordDao {
         newLibrary: String
     )
 
-    /** Sadece kelimenin kütüphanesini değiştirir (taşıma işlemi için) */
     @Query("UPDATE words SET library = :newLibrary WHERE id = :id")
     suspend fun updateWordLibrary(id: Int, newLibrary: String)
 }
