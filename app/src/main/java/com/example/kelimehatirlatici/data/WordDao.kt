@@ -79,7 +79,7 @@ interface WordDao {
     suspend fun getStatsByDate(date: String): StudyStats?
 
     // ═══════════════════════════════════════════════════════════
-    // YENİ: KELİME DÜZENLEME METODLARI
+    // KELİME DÜZENLEME / SİLME METODLARI
     // ═══════════════════════════════════════════════════════════
     @Query("""
         UPDATE words 
@@ -101,4 +101,8 @@ interface WordDao {
 
     @Query("UPDATE words SET library = :newLibrary WHERE id = :id")
     suspend fun updateWordLibrary(id: Int, newLibrary: String)
+
+    /** ID'ye göre tek bir kelimeyi tamamen sil */
+    @Query("DELETE FROM words WHERE id = :id")
+    suspend fun deleteWordById(id: Int)
 }
