@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,11 +61,16 @@ fun WordListScreen(
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
 
-    // Silme onay dialogu
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Kelime Listesi (${words.size})") }) }
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Kelime Listesi (${words.size})")
+                }
+            )
+        }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             if (words.isEmpty()) {
@@ -106,7 +111,7 @@ fun WordListScreen(
                                         color = Color(0xFF1976D2)
                                     )
                                 }
-                                // Düzenleme butonu (çark ikonu)
+                                // Çark ikonu - Düzenle/Sil
                                 IconButton(onClick = {
                                     editingWord = w
                                     editWordText = w.word
@@ -117,7 +122,11 @@ fun WordListScreen(
                                     editMessage = ""
                                     showEditSuccess = false
                                 }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Düzenle", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Düzenle/Sil",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
@@ -130,7 +139,7 @@ fun WordListScreen(
     }
 
     // ════════════════════════════════════════════════════════════
-    // DÜZENLEME DİALOGU (Güncelle / Sil seçenekli)
+    // DÜZENLEME / SİL DİALOGU
     // ════════════════════════════════════════════════════════════
     if (editingWord != null) {
         AlertDialog(
@@ -153,7 +162,6 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Anlam (çoklu anlam ipucu)
                     OutlinedTextField(
                         value = editMeaningText,
                         onValueChange = { editMeaningText = it },
@@ -165,7 +173,6 @@ fun WordListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Örnek Cümle (çoklu örnek ipucu)
                     OutlinedTextField(
                         value = editExampleText,
                         onValueChange = { editExampleText = it },
@@ -208,7 +215,11 @@ fun WordListScreen(
                             onClick = { editMode = "update" },
                             label = { Text("Güncelle", fontSize = 12.sp) },
                             leadingIcon = {
-                                if (editMode == "update") Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp))
+                                if (editMode == "update") Icon(
+                                    Icons.Default.Done,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             },
                             modifier = Modifier.weight(1f)
                         )
