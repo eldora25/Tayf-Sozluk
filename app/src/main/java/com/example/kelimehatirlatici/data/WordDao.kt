@@ -47,7 +47,7 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE library = :library AND isLearned = 0 ORDER BY RANDOM()")
     suspend fun getUnlearnedWordsRandom(library: String): List<Word>
 
-    // ══════════ YENİ SORGULAR ══════════
+    // ══════════ YARDIMCI SORGULAR ══════════
     @Query("SELECT COUNT(*) FROM words WHERE library = :library AND word = :word")
     suspend fun countByLibraryAndWord(library: String, word: String): Int
 
@@ -79,7 +79,7 @@ interface WordDao {
     suspend fun getStatsByDate(date: String): StudyStats?
 
     // ═══════════════════════════════════════════════════════════
-    // YENİ EKLENEN METODLAR (Kelime Düzenleme Özelliği İçin)
+    // YENİ: KELİME DÜZENLEME METODLARI
     // ═══════════════════════════════════════════════════════════
     @Query("""
         UPDATE words 
