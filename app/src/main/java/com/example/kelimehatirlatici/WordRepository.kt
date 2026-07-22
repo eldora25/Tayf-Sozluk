@@ -13,6 +13,11 @@ data class LibraryInfo(
 
 class WordRepository(private val wordDao: WordDao) {
 
+    companion object {
+        const val LIBRARY_REVIEW = "🔁 Tekrarlanması Gerekenler"
+        const val LIBRARY_LEARNED = "✅ Öğrenilmiş"
+    }
+
     suspend fun addWord(word: Word) = wordDao.insertWord(word)
 
     suspend fun addWords(words: List<Word>) = wordDao.insertWords(words)
@@ -24,8 +29,13 @@ class WordRepository(private val wordDao: WordDao) {
     suspend fun getWordsByLibraryAndLevel(library: String, level: String) =
         wordDao.getWordsByLibraryAndLevel(library, level)
 
-    suspend fun getNextWord(library: String, level: String) =
-        wordDao.getNextWord(library, level)
+    suspend fun getNextWord(library: String, level: String): Word? {
+        return if (level == "Tümü") {
+            wordDao.getNextWordFromLibrary(library)
+        } else {
+            wordDao.getNextWord(library, level)
+        }
+    }
 
     suspend fun getLibraries() = wordDao.getLibraries()
 
@@ -47,13 +57,54 @@ class WordRepository(private val wordDao: WordDao) {
     suspend fun renameLibrary(oldName: String, newName: String) =
         wordDao.updateLibraryName(oldName, newName)
 
+    // ═══════════════════════════════════════════════════════════════════
+    // ★ GÜNCELLENDİ: markKnown → "✅ Öğrenilmiş" kütüphanesine de ekler
+    // ★ GÜNCELLENDİ: markWrong → "🔁 Tekrarlanması Gerekenler" kütüphanesine de ekler
+    // ═══════════════════════════════════════════════════════════════════
     suspend fun markKnown(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true, repeatCount = word.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
+        // "✅ Öğrenilmiş" kütüphanesine ekle (yoksa)
+        if (!isWordDuplicate(LIBRARY_LEARNED, word.word)) {
+            wordDao.insertWord(
+                Word(
+                    word = word.word,
+                    meaning = word.meaning,
+                    example = word.example,
+                    library = LIBRARY_LEARNED,
+                    level = word.level,
+                    isLearned = true
+                )
+            )
+        }
         increaseTodayLearned()
     }
 
     suspend fun markWrong(word: Word) {
         wordDao.updateWord(word.copy(wrongCount = word.wrongCount + 1, repeatCount = word.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
+        // "🔁 Tekrarlanması Gerekenler" kütüphanesine ekle (yoksa)
+        if (!isWordDuplicate(LIBRARY_REVIEW, word.word)) {
+            wordDao.insertWord(
+                Word(
+                    word = word.word,
+                    meaning = word.meaning,
+                    example = word.example,
+                    library = LIBRARY_REVIEW,
+                    level = word.level,
+                    isLearned = false,
+                    quizCorrectCount = 0,
+                    wrongCount = 1,
+                    repeatCount = 1,
+                    lastReviewedAt = System.currentTimeMillis()
+                )
+            )
+        } else {
+            // Zaten varsa wrongCount'u artır
+            val existing = wordDao.getWordsByLibrary(LIBRARY_REVIEW)
+            val match = existing.find { it.word == word.word }
+            if (match != null) {
+                wordDao.updateWord(match.copy(wrongCount = match.wrongCount + 1, repeatCount = match.repeatCount + 1, lastReviewedAt = System.currentTimeMillis()))
+            }
+        }
     }
 
     suspend fun getWrongWords() = wordDao.getWrongWords()
@@ -72,14 +123,13 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun markAsLearned(word: Word) {
         wordDao.updateWord(word.copy(isLearned = true))
-        val learnedLib = "✅ Öğrenilmiş"
-        if (!isWordDuplicate(learnedLib, word.word)) {
+        if (!isWordDuplicate(LIBRARY_LEARNED, word.word)) {
             wordDao.insertWord(
                 Word(
                     word = word.word,
                     meaning = word.meaning,
                     example = word.example,
-                    library = learnedLib,
+                    library = LIBRARY_LEARNED,
                     level = word.level,
                     isLearned = true
                 )
@@ -89,6 +139,20 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun recordQuizWrong(word: Word) {
         wordDao.updateWord(word.copy(wrongCount = word.wrongCount + 1, lastReviewedAt = System.currentTimeMillis()))
+        // Quiz'de yanlış yapılanlar da "🔁 Tekrarlanması Gerekenler"e ekle
+        if (!isWordDuplicate(LIBRARY_REVIEW, word.word)) {
+            wordDao.insertWord(
+                Word(
+                    word = word.word,
+                    meaning = word.meaning,
+                    example = word.example,
+                    library = LIBRARY_REVIEW,
+                    level = word.level,
+                    isLearned = false,
+                    wrongCount = 1
+                )
+            )
+        }
     }
 
     suspend fun getTodayGoal() = wordDao.getGoalByDate(today())
