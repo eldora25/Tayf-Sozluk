@@ -35,9 +35,8 @@ fun QuizScreen(
     onPlayWrongSound: () -> Unit,
     isSoundMuted: Boolean,
     onToggleMute: () -> Unit,
-    onBack: () -> Unit,
-    // ========== YENİ: Yeni quiz başlatma callback'i ==========
-    onNewQuiz: () -> Unit = {}
+    onRestartQuiz: () -> Unit = {},
+    onBack: () -> Unit
 ) {
     val question = session.currentQuestion
 
@@ -106,7 +105,7 @@ fun QuizScreen(
                 .fillMaxSize()
         ) {
             if (session.isFinished) {
-                // ========== SONUÇ EKRANI ==========
+                // ========== QUIZ BİTTİ EKRANI ==========
                 Spacer(modifier = Modifier.height(48.dp))
                 Text(
                     "Quiz Tamamlandı! 🎉",
@@ -166,7 +165,9 @@ fun QuizScreen(
 
                 // ========== YENİ QUIZ BUTONU ==========
                 Button(
-                    onClick = { onNewQuiz() },
+                    onClick = {
+                        onRestartQuiz()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -190,8 +191,12 @@ fun QuizScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Geri Butonu
                 OutlinedButton(
-                    onClick = onBack,
+                    onClick = {
+                        session.isRunning = false
+                        onBack()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Geri")
@@ -200,10 +205,13 @@ fun QuizScreen(
             } else if (question == null) {
                 Text("Quiz için yeterli kelime yok.", textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
+                OutlinedButton(onClick = {
+                    session.isRunning = false
+                    onBack()
+                }, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
 
             } else {
-                // ========== SORU EKRANI ==========
+                // ========== QUIZ SORU EKRANI ==========
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
