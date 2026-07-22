@@ -97,9 +97,7 @@ fun AddWordScreen(
                     readOnly = true,
                     label = { Text("Kütüphane") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = libraryExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
                 ExposedDropdownMenu(
                     expanded = libraryExpanded,
@@ -127,7 +125,6 @@ fun AddWordScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Seviye seçimi
             Text("Seviye", fontSize = 14.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(4.dp))
             val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
@@ -169,7 +166,6 @@ fun AddWordScreen(
         }
     }
 
-    // Yeni kütüphane dialogu
     if (showNewLibraryDialog) {
         AlertDialog(
             onDismissRequest = { showNewLibraryDialog = false; newLibraryName = "" },
