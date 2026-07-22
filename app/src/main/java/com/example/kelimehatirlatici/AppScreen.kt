@@ -1,7 +1,5 @@
 package com.example.kelimehatirlatici
 
-import android.content.ContentValues
-import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
@@ -34,7 +32,6 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +67,6 @@ fun AppScreen(
     var totalWords by remember { mutableStateOf(0) }
     var learnedWords by remember { mutableStateOf(0) }
     var todayLearned by remember { mutableStateOf(0) }
-    var dailyGoal by remember { mutableStateOf(20) }
 
     // Dosya içe aktarma
     val importLauncher = rememberLauncherForActivityResult(
@@ -148,16 +144,13 @@ fun AppScreen(
 
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-            // Günlük hedef
-            coroutineScope.launch {
-                try {
-                    val stats = wordDao.getStudyStatsByDate(today)
-                    if (stats != null) {
-                        todayLearned = stats.learnedCount
-                    }
-                } catch (e: Exception) {
-                    todayLearned = 0
+            try {
+                val stats = wordRepository.getStudyStatsByDate(today)
+                if (stats != null) {
+                    todayLearned = stats.learnedCount
                 }
+            } catch (e: Exception) {
+                todayLearned = 0
             }
         }
     }
@@ -609,7 +602,7 @@ fun AppScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = editExample,
-                        onValueChange = { editExample = it },
+                        onChange = { editExample = it },
                         label = { Text("Örnek Cümle") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
