@@ -17,6 +17,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.Word
 
+// ★ Yeni: ||| ile ayrılmış çoklu değerleri listeye çevirir
+private fun parseMultiValue(text: String): List<String> {
+    return text.split("|||").map { it.trim() }.filter { it.isNotBlank() }
+}
+
+// ★ Yeni: Çoklu anlamları alt alta görüntüleme
+private fun formatMultiMeanings(meaning: String): String {
+    val parts = parseMultiValue(meaning)
+    return if (parts.size > 1) {
+        parts.joinToString("\n") { "• $it" }
+    } else {
+        meaning
+    }
+}
+
+// ★ Yeni: Çoklu örnekleri alt alta görüntüleme
+private fun formatMultiExamples(example: String): String {
+    val parts = parseMultiValue(example)
+    return if (parts.size > 1) {
+        parts.joinToString("\n") { "• \"$it\"" }
+    } else if (example.isNotBlank()) {
+        "\"$example\""
+    } else {
+        ""
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WordListScreen(
@@ -34,7 +61,6 @@ fun WordListScreen(
     var editMessage by remember { mutableStateOf("") }
     var showEditSuccess by remember { mutableStateOf(false) }
 
-    // Silme onay dialogu
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -49,15 +75,29 @@ fun WordListScreen(
                         Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                             Row(
                                 modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.Top,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(w.word, fontWeight = FontWeight.Bold)
-                                    Text(w.meaning, style = MaterialTheme.typography.bodyMedium)
+
+                                    // ★ Değişiklik: Çoklu anlamları alt alta • ile göster
+                                    Text(
+                                        text = formatMultiMeanings(w.meaning),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    )
+
+                                    // ★ Değişiklik: Çoklu örnekleri alt alta • ile göster
                                     if (w.example.isNotBlank()) {
-                                        Text(w.example, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = formatMultiExamples(w.example),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        )
                                     }
+
                                     // Seviye bilgisi
                                     Text(
                                         "Seviye: ${w.level}",
@@ -88,9 +128,9 @@ fun WordListScreen(
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
     // DÜZENLEME DİALOGU (Güncelle / Sil seçenekli)
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
     if (editingWord != null) {
         AlertDialog(
             onDismissRequest = { editingWord = null },
@@ -104,16 +144,36 @@ fun WordListScreen(
             },
             text = {
                 Column {
-                    // Kelime
-                    OutlinedTextField(value = editWordText, onValueChange = { editWordText = it }, label = { Text("Kelime") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        value = editWordText,
+                        onValueChange = { editWordText = it },
+                        label = { Text("Kelime") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Anlam
-                    OutlinedTextField(value = editMeaningText, onValueChange = { editMeaningText = it }, label = { Text("Anlam") }, modifier = Modifier.fillMaxWidth())
+                    // ★ Değişiklik: Çoklu anlam desteği açıklaması
+                    OutlinedTextField(
+                        value = editMeaningText,
+                        onValueChange = { editMeaningText = it },
+                        label = { Text("Anlam") },
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text("Birden fazla anlam varsa ||| ile ayırın", fontSize = 10.sp, color = Color.Gray)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Örnek Cümle
-                    OutlinedTextField(value = editExampleText, onValueChange = { editExampleText = it }, label = { Text("Örnek Cümle") }, modifier = Modifier.fillMaxWidth())
+                    // ★ Değişiklik: Çoklu örnek desteği açıklaması
+                    OutlinedTextField(
+                        value = editExampleText,
+                        onValueChange = { editExampleText = it },
+                        label = { Text("Örnek Cümle") },
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text("Birden fazla örnek varsa ||| ile ayırın", fontSize = 10.sp, color = Color.Gray)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Seviye seçimi
@@ -146,7 +206,13 @@ fun WordListScreen(
                             selected = editMode == "update",
                             onClick = { editMode = "update" },
                             label = { Text("Güncelle", fontSize = 12.sp) },
-                            leadingIcon = { if (editMode == "update") Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = {
+                                if (editMode == "update") Icon(
+                                    Icons.Default.Done,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
@@ -160,10 +226,13 @@ fun WordListScreen(
                         )
                     }
 
-                    // İşlem açıklaması
                     if (editMode == "delete") {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Kelime tamamen silinecek! Bu işlem geri alınamaz.", fontSize = 12.sp, color = Color(0xFFD32F2F))
+                        Text(
+                            "Kelime tamamen silinecek! Bu işlem geri alınamaz.",
+                            fontSize = 12.sp,
+                            color = Color(0xFFD32F2F)
+                        )
                     }
                 }
             },
@@ -184,21 +253,31 @@ fun WordListScreen(
                             editMessage = "✅ Kelime güncellendi!"
                             showEditSuccess = true
                             editingWord = null
-                            onUpdateWord(id, editWordText.trim(), editMeaningText.trim(), editExampleText.trim(), finalLevel)
+                            onUpdateWord(
+                                id,
+                                editWordText.trim(),
+                                editMeaningText.trim(),
+                                editExampleText.trim(),
+                                finalLevel
+                            )
                         },
                         enabled = editWordText.isNotBlank() && editMeaningText.isNotBlank()
                     ) { Text("Kaydet") }
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { editingWord = null; editMessage = ""; showEditSuccess = false }) { Text("İptal") }
+                OutlinedButton(onClick = {
+                    editingWord = null
+                    editMessage = ""
+                    showEditSuccess = false
+                }) { Text("İptal") }
             }
         )
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
     // SİLME ONAY DİALOGU
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════
     if (showDeleteConfirm && editingWord != null) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -225,7 +304,7 @@ fun WordListScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Kelime: ${editingWord!!.word}", fontWeight = FontWeight.Bold)
-                            Text("Anlam: ${editingWord!!.meaning}")
+                            Text("Anlam: ${formatMultiMeanings(editingWord!!.meaning)}")
                             Text("Seviye: ${editingWord!!.level}")
                             Text("Kütüphane: ${editingWord!!.library}")
                         }
