@@ -6,7 +6,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +79,7 @@ fun AddWordScreen(
                             }
                         )
                     }
-                    Divider()
+                    HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("➕ Yeni Kütüphane Oluştur") },
                         onClick = {
@@ -90,14 +92,33 @@ fun AddWordScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(value = level, onValueChange = { level = it }, label = { Text("Seviye") }, modifier = Modifier.fillMaxWidth())
+            // ═══════════════════════════════════════════════════
+            // ★ YENİ: SEVİYE SEÇİMİ (A1, A2, B1, B2, C1, C2, Genel)
+            // ═══════════════════════════════════════════════════
+            Text("Seviye", fontSize = 14.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(4.dp))
+            val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                levels.forEach { lvl ->
+                    FilterChip(
+                        selected = level == lvl,
+                        onClick = { level = lvl },
+                        label = { Text(lvl, fontSize = 11.sp) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
                     if (word.isNotBlank() && meaning.isNotBlank()) {
-                        onSave(word.trim(), meaning.trim(), example.trim(), selectedLibrary.trim().ifBlank { "Genel" }, level.trim().ifBlank { "Genel" })
+                        val finalLevel = if (level.isBlank()) "Genel" else level
+                        onSave(word.trim(), meaning.trim(), example.trim(), selectedLibrary.trim().ifBlank { "Genel" }, finalLevel)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
