@@ -34,5 +34,9 @@ abstract class AppDatabase : RoomDatabase() {
                 instance
             }
         }
+
+        /** Eski isimle uyumluluk (MainActivity için) */
+        @JvmStatic
+        fun getDatabase(context: Context): AppDatabase = getInstance(context)
     }
 }
