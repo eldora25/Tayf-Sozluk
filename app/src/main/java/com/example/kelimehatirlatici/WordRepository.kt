@@ -29,6 +29,14 @@ class WordRepository(private val wordDao: WordDao) {
         return wordDao.getWordById(wordId)
     }
 
+    fun getLearnedCount(library: String, level: String): Int {
+        return wordDao.getLearnedCount(library, level)
+    }
+
+    fun getLearningCount(library: String, level: String): Int {
+        return wordDao.getLearningCount(library, level)
+    }
+
     fun updateIncorrectCount(wordId: Int) {
         val word = wordDao.getWordById(wordId)
         if (word != null) {
@@ -54,11 +62,19 @@ class WordRepository(private val wordDao: WordDao) {
         }
     }
 
-    fun updateWord(id: Int, word: String, meaning: String, example: String, level: String) {
-        wordDao.updateWord(id, word, meaning, example, level)
+    fun updateWord(id: Int, word: String, meaning: String, meanings: String, example: String, examples: String, level: String, library: String) {
+        wordDao.updateWord(id, word, meaning, meanings, example, examples, level, library)
+    }
+
+    fun moveWord(wordId: Int, newLibrary: String) {
+        wordDao.moveWord(wordId, newLibrary)
     }
 
     fun deleteWord(id: Int) {
         wordDao.deleteWord(id)
+    }
+
+    fun copyWord(word: Word): Word {
+        return word.copy(id = 0)
     }
 }
