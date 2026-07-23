@@ -3,193 +3,227 @@ package com.example.kelimehatirlatici.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddWordScreen(
     libraries: List<String>,
-    onSave: (word: String, meaning: String, example: String, library: String, level: String) -> Unit,
+    onSave: (word: String, meaning: String, meanings: List<String>, example: String, examples: List<String>, library: String, level: String) -> Unit,
     onBack: () -> Unit
 ) {
     var word by remember { mutableStateOf("") }
-    var meaning by remember { mutableStateOf("") }
-    var example by remember { mutableStateOf("") }
-    var selectedLibrary by remember { mutableStateOf(libraries.firstOrNull() ?: "Genel") }
-    var level by remember { mutableStateOf("Genel") }
-
-    var libraryExpanded by remember { mutableStateOf(false) }
+    var meanings by remember { mutableStateOf(mutableListOf("")) }
+    var examples by remember { mutableStateOf(mutableListOf("")) }
+    var selectedLibrary by remember { mutableStateOf("Genel") }
+    var selectedLevel by remember { mutableStateOf("Genel") }
     var showNewLibraryDialog by remember { mutableStateOf(false) }
     var newLibraryName by remember { mutableStateOf("") }
-
-    val allLibraries = remember(libraries, newLibraryName) {
-        val list = libraries.toMutableList()
-        if (newLibraryName.isNotBlank() && newLibraryName !in list) {
-            list.add(newLibraryName)
-        }
-        list
-    }
+    val allLibraries = remember { mutableStateListOf<String>().apply { addAll(libraries) } }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Kelime Ekle") }) }
-    ) { padding ->
+        topBar = {
+            TopAppBar(
+                title = { Text("Kelime Ekle") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Kelime
             OutlinedTextField(
                 value = word,
                 onValueChange = { word = it },
                 label = { Text("Kelime") },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(12.dp))
 
-            // ★ Anlam alanı - çoklu anlam desteği açıklaması
-            OutlinedTextField(
-                value = meaning,
-                onValueChange = { meaning = it },
-                label = { Text("Anlam") },
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = {
-                    Text(
-                        "Birden fazla anlam varsa ||| ile ayırın. Örn: özgür, hür|||serbest|||bedava",
-                        fontSize = 11.sp,
-                        color = Color.Gray
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Çoklu Anlam
+            Text("Anlam(lar)", style = MaterialTheme.typography.titleSmall)
+            meanings.forEachIndexed { index, meaning ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = meaning,
+                        onValueChange = { meanings[index] = it },
+                        label = { Text("Anlam ${index + 1}") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (meanings.size > 1) {
+                        IconButton(onClick = { meanings.removeAt(index) }) {
+                            Icon(Icons.Default.Remove, contentDescription = "Kaldır")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            TextButton(onClick = { meanings.add("") }) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text("Anlam Ekle")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Çoklu Örnek Cümle
+            Text("Örnek Cümle(ler)", style = MaterialTheme.typography.titleSmall)
+            examples.forEachIndexed { index, example ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = example,
+                        onValueChange = { examples[index] = it },
+                        label = { Text("Örnek ${index + 1}") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (examples.size > 1) {
+                        IconButton(onClick = { examples.removeAt(index) }) {
+                            Icon(Icons.Default.Remove, contentDescription = "Kaldır")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            TextButton(onClick = { examples.add("") }) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text("Örnek Cümle Ekle")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Seviye
+            Text("Seviye", style = MaterialTheme.typography.titleSmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
+                levels.forEach { level ->
+                    FilterChip(
+                        selected = selectedLevel == level,
+                        onClick = { selectedLevel = level },
+                        label = { Text(level, style = MaterialTheme.typography.bodySmall) }
                     )
                 }
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            // ★ Örnek cümle alanı - çoklu örnek desteği açıklaması
-            OutlinedTextField(
-                value = example,
-                onValueChange = { example = it },
-                label = { Text("Örnek Cümle") },
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = {
-                    Text(
-                        "Birden fazla örnek varsa ||| ile ayırın. Örn: Örnek 1|||Örnek 2",
-                        fontSize = 11.sp,
-                        color = Color.Gray
-                    )
-                }
-            )
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Kütüphane dropdown
+            // Kütüphane
+            Text("Kütüphane", style = MaterialTheme.typography.titleSmall)
+            var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(
-                expanded = libraryExpanded,
-                onExpandedChange = { libraryExpanded = it }
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
                     value = selectedLibrary,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Kütüphane") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = libraryExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
                 ExposedDropdownMenu(
-                    expanded = libraryExpanded,
-                    onDismissRequest = { libraryExpanded = false }
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
                 ) {
-                    allLibraries.forEach { lib ->
+                    allLibraries.forEach { library ->
                         DropdownMenuItem(
-                            text = { Text(lib) },
+                            text = { Text(library) },
                             onClick = {
-                                selectedLibrary = lib
-                                libraryExpanded = false
+                                selectedLibrary = library
+                                expanded = false
                             }
                         )
                     }
-                    HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text("➕ Yeni Kütüphane Oluştur") },
+                        text = { Text("+ Yeni Kütüphane", color = MaterialTheme.colorScheme.primary) },
                         onClick = {
-                            libraryExpanded = false
+                            expanded = false
                             showNewLibraryDialog = true
                         }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Seviye seçimi
-            Text("Seviye", fontSize = 14.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(4.dp))
-            val levels = listOf("A1", "A2", "B1", "B2", "C1", "C2", "Genel")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                levels.forEach { lvl ->
-                    FilterChip(
-                        selected = level == lvl,
-                        onClick = { level = lvl },
-                        label = { Text(lvl, fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Kaydet
             Button(
                 onClick = {
-                    if (word.isNotBlank() && meaning.isNotBlank()) {
-                        val finalLevel = if (level.isBlank()) "Genel" else level
+                    if (word.isNotBlank() && meanings.any { it.isNotBlank() }) {
+                        val filteredMeanings = meanings.filter { it.isNotBlank() }
+                        val filteredExamples = examples.filter { it.isNotBlank() }
                         onSave(
-                            word.trim(),
-                            meaning.trim(),
-                            example.trim(),
-                            selectedLibrary.trim().ifBlank { "Genel" },
-                            finalLevel
+                            word,
+                            filteredMeanings.first(),
+                            filteredMeanings,
+                            filteredExamples.firstOrNull() ?: "",
+                            filteredExamples,
+                            selectedLibrary,
+                            selectedLevel
                         )
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Kaydet") }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
+            ) {
+                Text("Kaydet")
+            }
         }
     }
 
+    // Yeni Kütüphane Dialog
     if (showNewLibraryDialog) {
         AlertDialog(
-            onDismissRequest = { showNewLibraryDialog = false; newLibraryName = "" },
+            onDismissRequest = { showNewLibraryDialog = false },
             title = { Text("Yeni Kütüphane") },
             text = {
                 OutlinedTextField(
                     value = newLibraryName,
                     onValueChange = { newLibraryName = it },
-                    label = { Text("Kütüphane adı") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Kütüphane Adı") }
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     if (newLibraryName.isNotBlank()) {
-                        selectedLibrary = newLibraryName.trim()
+                        allLibraries.add(newLibraryName)
+                        selectedLibrary = newLibraryName
+                        newLibraryName = ""
+                        showNewLibraryDialog = false
                     }
-                    showNewLibraryDialog = false
-                }) { Text("Oluştur") }
+                }) {
+                    Text("Oluştur")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showNewLibraryDialog = false; newLibraryName = "" }) { Text("İptal") }
+                TextButton(onClick = { showNewLibraryDialog = false }) {
+                    Text("İptal")
+                }
             }
         )
     }
