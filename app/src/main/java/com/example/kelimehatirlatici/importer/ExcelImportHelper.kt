@@ -4,11 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.example.kelimehatirlatici.data.Word
+import com.example.kelimehatirlatici.WordRepository
 import org.json.JSONArray
 
 /**
- * Excel, CSV ve TXT dosyalarından kelime içe aktarma yardımcı sınıfı.
- * Apache POI kütüphanesi olmadan çalışır.
+ * Dosyalardan kelime içe aktarma yardımcı sınıfı.
  * 
  * Desteklenen formatlar:
  * - CSV: word,meaning1|||meaning2|||...,example,level,library
@@ -22,13 +22,17 @@ object ExcelImportHelper {
 
     /**
      * Seçilen dosyayı işler ve kelimeleri veritabanına ekler.
+     * @param context Context
+     * @param repository WordRepository
+     * @param uri Dosya URI'si
+     * @param libraryName Kullanıcının seçtiği kütüphane adı
      * @return Pair<eklenenSayı, atlananSayı>
      */
     fun importFile(
         context: Context,
-        repository: com.example.kelimehatirlatici.WordRepository,
+        repository: WordRepository,
         uri: Uri,
-        fileType: String = "auto"
+        libraryName: String = "Genel"
     ): Pair<Int, Int> {
         var imported = 0
         var skipped = 0
@@ -40,12 +44,12 @@ object ExcelImportHelper {
             val content = inputStream.bufferedReader().use { it.readText() }
             val lines = content.lines().filter { it.isNotBlank() }
 
-            Log.d(TAG, "Dosya okundu: ${lines.size} satır")
+            Log.d(TAG, "Dosya okundu: ${lines.size} satır, kütüphane: $libraryName")
 
             // Her satırı işle
             for (line in lines) {
                 try {
-                    val word = parseLine(line.trim())
+                    val word = parseLine(line.trim(), libraryName)
                     if (word != null) {
                         repository.addWord(word)
                         imported++
@@ -78,10 +82,10 @@ object ExcelImportHelper {
      * 3. Lingoes TXT formatı (iki nokta üst üste ile ayrılmış)
      * 4. FreeDict formatı (eşittir ile ayrılmış)
      */
-    private fun parseLine(line: String): Word? {
+    private fun parseLine(line: String, libraryName: String): Word? {
         // 1. JSON formatı
         if (line.trimStart().startsWith("{") && line.trimEnd().endsWith("}")) {
-            return parseJsonLine(line)
+            return parseJsonLine(line, libraryName)
         }
 
         // 2. CSV formatı - virgülle ayrılmış
@@ -102,7 +106,9 @@ object ExcelImportHelper {
 
                     val example = if (parts.size > 2) parts[2].trim('"', ' ').trim() else ""
                     val level = if (parts.size > 3) parts[3].trim('"', ' ').trim().ifBlank { "Genel" } else "Genel"
-                    val library = if (parts.size > 4) parts[4].trim('"', ' ').trim().ifBlank { "Genel" } else "Genel"
+
+                    // libraryName parametresi kullanılıyor - dosyadaki değil!
+                    val library = libraryName
 
                     val examplesJson = if (example.isNotBlank()) {
                         JSONArray(listOf(example)).toString()
@@ -142,7 +148,7 @@ object ExcelImportHelper {
                         meanings = meaningsJson,
                         example = "",
                         examples = "[]",
-                        library = "Genel",
+                        library = libraryName,
                         level = "Genel"
                     )
                 }
@@ -170,7 +176,7 @@ object ExcelImportHelper {
                         meanings = meaningsJson,
                         example = "",
                         examples = "[]",
-                        library = "Genel",
+                        library = libraryName,
                         level = "Genel"
                     )
                 }
@@ -183,8 +189,9 @@ object ExcelImportHelper {
     /**
      * JSON satırını parse eder.
      * Format: {"word":"...", "meanings":["..."], "example":"...", "library":"...", "level":"..."}
+     * Kullanıcının seçtiği libraryName, dosyadakini ezer.
      */
-    private fun parseJsonLine(line: String): Word? {
+    private fun parseJsonLine(line: String, libraryName: String): Word? {
         return try {
             val obj = org.json.JSONObject(line)
             val word = obj.optString("word", "").trim()
@@ -221,8 +228,10 @@ object ExcelImportHelper {
                 examples = if (example.isNotBlank()) JSONArray(listOf(example)).toString() else "[]"
             }
 
-            val library = obj.optString("library", "Genel").ifBlank { "Genel" }
             val level = obj.optString("level", "Genel").ifBlank { "Genel" }
+
+            // libraryName parametresini kullan (kullanıcının seçtiği)
+            val library = libraryName
 
             Word(
                 word = word,
