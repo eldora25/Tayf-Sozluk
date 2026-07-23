@@ -28,7 +28,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "kelime_hatirlatici_database"
                 )
-                .fallbackToDestructiveMigration()  // ← KRİTİK: Eski veritabanını silip yeniden oluşturur
+                .fallbackToDestructiveMigration()
+                .allowMainThreadQueries()  // ← KRİTİK: Main thread'de sorgulara izin ver
                 .build()
 
                 INSTANCE = instance
