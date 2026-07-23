@@ -73,15 +73,13 @@ fun AppScreen(
     onWordClick: (Word) -> Unit,
     onWordLongClick: (Word) -> Unit
 ) {
-    var showWordList by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text("Kelime Hatırlatıcı", fontSize = 18.sp)
-                        // ★ Build versiyonu + Tayfun Yamak
+                        // Build versiyonu + Tayfun Yamak
                         Text(
                             "Build 1.0 - Tayfun Yamak",
                             fontSize = 10.sp,
@@ -90,7 +88,7 @@ fun AppScreen(
                     }
                 },
                 actions = {
-                    // ★ Çark ikonu - ayarlar menüsü
+                    // Çark ikonu - ayarlar menüsü
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
                     }
@@ -118,14 +116,13 @@ fun AppScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Kütüphane seçimi
+                    // Kütüphane
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = onLibraryClick, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.LibraryBooks, contentDescription = null, modifier = Modifier.size(20.dp))
                         }
                         Text(selectedLibrary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-
                     // Seviye
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = onLevelClick, modifier = Modifier.size(32.dp)) {
@@ -133,14 +130,12 @@ fun AppScreen(
                         }
                         Text(selectedLevel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-
                     // Kelime sayısı
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.height(2.dp))
                         Text("$totalWordCount", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-
                     // Günlük hedef
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         IconButton(onClick = onGoalClick, modifier = Modifier.size(32.dp)) {
@@ -158,7 +153,7 @@ fun AppScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // ═══════════════════════════════════════════
-            // KELİME LİSTESİ (tıklanabilir, düzenlenebilir)
+            // KELİME LİSTESİ - Çark ikonlu düzenleme
             // ═══════════════════════════════════════════
             LazyColumn(
                 modifier = Modifier.weight(1f)
@@ -170,10 +165,7 @@ fun AppScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clickable {
-                                // Tıklayınca kartı çevir / düzenle dialogu aç
-                                onWordClick(w)
-                            },
+                            .clickable { onWordClick(w) },
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -192,7 +184,7 @@ fun AppScreen(
                                     )
                                 }
 
-                                // ★ Çark ikonu - Düzenle/Sil
+                                // Çark ikonu - Düzenle/Sil
                                 IconButton(onClick = { onWordLongClick(w) }) {
                                     Icon(
                                         Icons.Default.Settings,
@@ -238,19 +230,16 @@ fun AppScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Quiz butonu
                 Button(
                     onClick = onQuizClick,
                     modifier = Modifier.weight(1f)
                 ) { Text("❓ Quiz") }
 
-                // Kelime Ekle
                 OutlinedButton(
                     onClick = onAddWordClick,
                     modifier = Modifier.weight(1f)
                 ) { Text("➕ Ekle") }
 
-                // Kelime Listesi
                 OutlinedButton(
                     onClick = onWordListClick,
                     modifier = Modifier.weight(1f)
