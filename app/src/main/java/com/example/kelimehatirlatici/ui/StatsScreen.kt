@@ -1,69 +1,54 @@
 package com.example.kelimehatirlatici.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.kelimehatirlatici.LibraryInfo
+import androidx.compose.ui.unit.sp
+import com.example.kelimehatirlatici.data.Word
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
-    libraryInfoList: List<LibraryInfo>,
-    totalLibraries: Int,
-    totalWords: Int,
-    totalLearned: Int,
+    words: List<Word>,
     onBack: () -> Unit
 ) {
+    val totalWords = words.size
+    val learnedWords = words.count { it.wrongCount == 0 }
+    val notLearnedWords = totalWords - learnedWords
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("İstatistikler") }) }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
-
-            Text("Kütüphane Bazında", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (libraryInfoList.isEmpty()) {
-                Text("Henüz kütüphane yok.")
-            } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(libraryInfoList) { info ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(info.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Toplam: ${info.totalCount}")
-                                    Text("✅ ${info.learnedCount}", color = MaterialTheme.colorScheme.primary)
-                                    Text("📚 ${info.notLearnedCount}", color = MaterialTheme.colorScheme.error)
-                                }
-                                LinearProgressIndicator(
-                                    progress = {
-                                        if (info.totalCount > 0) info.learnedCount.toFloat() / info.totalCount.toFloat() else 0f
-                                    },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                                )
-                            }
-                        }
+        topBar = {
+            TopAppBar(
+                title = { Text("İstatistikler") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
                     }
                 }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Kelime İstatistikleri", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Toplam Kelime: $totalWords", style = MaterialTheme.typography.bodyLarge)
+                    Text("Öğrenilen: $learnedWords", style = MaterialTheme.typography.bodyLarge)
+                    Text("Öğrenilmeyen: $notLearnedWords", style = MaterialTheme.typography.bodyLarge)
+                }
             }
-
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
-
-            // ────── GENEL ÖZET ──────
-            Text("Genel Özet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("📁 Toplam kütüphane: $totalLibraries")
-            Text("📖 Toplam kelime: $totalWords")
-            Text("✅ Toplam öğrenilen: $totalLearned")
-
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Geri") }
         }
     }
 }
