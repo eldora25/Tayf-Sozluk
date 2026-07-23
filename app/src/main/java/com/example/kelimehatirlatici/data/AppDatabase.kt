@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
         Word::class,
         StudyStats::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "kelime_hatirlatici_database"
                 )
                 .fallbackToDestructiveMigration()
-                .allowMainThreadQueries()  // ← KRİTİK: Main thread'de sorgulara izin ver
+                .allowMainThreadQueries()
                 .build()
 
                 INSTANCE = instance
