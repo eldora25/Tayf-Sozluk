@@ -55,7 +55,6 @@ class MainActivity : ComponentActivity() {
     private fun MainScreen() {
         val coroutineScope = rememberCoroutineScope()
 
-        // Durum değişkenleri
         var selectedLibrary by remember { mutableStateOf("Genel") }
         var selectedLevel by remember { mutableStateOf("Genel") }
         var words by remember { mutableStateOf<List<Word>>(emptyList()) }
@@ -66,7 +65,6 @@ class MainActivity : ComponentActivity() {
         var quizSession by remember { mutableStateOf<QuizSession?>(null) }
         var isSoundMuted by remember { mutableStateOf(false) }
 
-        // Verileri yükle
         LaunchedEffect(selectedLibrary, selectedLevel) {
             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
             currentWordIndex = 0
@@ -74,7 +72,6 @@ class MainActivity : ComponentActivity() {
             libraries = repository.getAllLibraries()
         }
 
-        // Ekran yönlendirme
         when (currentScreen) {
             "main" -> {
                 AppScreen(
@@ -83,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     selectedLibrary = selectedLibrary,
                     selectedLevel = selectedLevel,
                     totalWordCount = words.size,
-                    dailyGoal = null,  // dailyGoal kaldırıldı
+                    dailyGoal = null,
                     isFlipped = false,
                     memorizationThreshold = 3,
                     onKnownClick = {
@@ -132,12 +129,8 @@ class MainActivity : ComponentActivity() {
                     onPacksClick = { currentScreen = "packs" },
                     onWrongWordsClick = { currentScreen = "wrongWords" },
                     onSettingsClick = { currentScreen = "settings" },
-                    onWordClick = { word ->
-                        currentWord = word
-                    },
-                    onWordLongClick = { word ->
-                        currentWord = word
-                    }
+                    onWordClick = { word -> currentWord = word },
+                    onWordLongClick = { word -> currentWord = word }
                 )
             }
             "addWord" -> {
@@ -174,6 +167,7 @@ class MainActivity : ComponentActivity() {
             "library" -> {
                 LibrarySelectScreen(
                     selectedLibrary = selectedLibrary,
+                    libraries = libraries,
                     onLibrarySelected = { lib ->
                         selectedLibrary = lib
                         currentScreen = "main"
@@ -196,9 +190,13 @@ class MainActivity : ComponentActivity() {
                 GoalScreen(
                     currentGoal = 10,
                     completed = 0,
-                    onSaveGoal = { target ->
-                        currentScreen = "main"
-                    },
+                    onSaveGoal = { target -> currentScreen = "main" },
+                    onBack = { currentScreen = "main" }
+                )
+            }
+            "stats" -> {
+                StatsScreen(
+                    words = words,
                     onBack = { currentScreen = "main" }
                 )
             }
