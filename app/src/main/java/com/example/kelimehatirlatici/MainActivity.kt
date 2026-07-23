@@ -16,6 +16,7 @@ import com.example.kelimehatirlatici.quiz.*
 import com.example.kelimehatirlatici.ui.*
 import kotlinx.coroutines.launch
 import java.util.Locale
+import org.json.JSONArray
 
 class MainActivity : ComponentActivity() {
     private lateinit var tts: TextToSpeech
@@ -30,23 +31,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Crash handler'ı kaydet (Compose dışında, güvenli)
         val currentHandler = Thread.getDefaultUncaughtExceptionHandler()
         if (currentHandler !is CrashHandler) {
             Thread.setDefaultUncaughtExceptionHandler(CrashHandler(currentHandler))
         }
 
-        Log.d(TAG, "Uygulama başlatılıyor...")
-
         try {
             database = AppDatabase.getDatabase(this)
-            Log.d(TAG, "Database başlatıldı")
-
             repository = WordRepository(database.wordDao())
-            Log.d(TAG, "Repository başlatıldı")
-
             quizGenerator = QuizGenerator(repository)
-            Log.d(TAG, "QuizGenerator başlatıldı")
 
             tts = TextToSpeech(this) { status ->
                 if (status != TextToSpeech.ERROR) {
@@ -54,8 +47,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Başlatma hatası: ${e.message}", e)
-            // Hata olursa yine de UI'ı göster, hata ekranda görünsün
+            Log.e(TAG, "Başlatma hatası: ${e.message}", e)
         }
 
         setContent {
@@ -68,8 +60,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        Log.d(TAG, "UI başlatıldı")
     }
 
     private fun speak(text: String) {
@@ -93,9 +83,11 @@ class MainActivity : ComponentActivity() {
         var libraries by remember { mutableStateOf<List<String>>(listOf("Genel")) }
         var quizSession by remember { mutableStateOf<QuizSession?>(null) }
         var isSoundMuted by remember { mutableStateOf(false) }
+        var isFlipped by remember { mutableStateOf(false) }
+        var dailyGoal by remember { mutableStateOf(10) }
+        var learnedToday by remember { mutableStateOf(0) }
         var errorMessage by remember { mutableStateOf<String?>(null) }
 
-        // Hata varsa ErrorScreen göster (Composable içinde güvenli)
         if (errorMessage != null) {
             ErrorScreen(
                 errorMessage = errorMessage!!,
@@ -107,22 +99,21 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        // Verileri yükle (Composable dışında değil, LaunchedEffect ile güvenli)
         LaunchedEffect(selectedLibrary, selectedLevel) {
             try {
-                Log.d(TAG, "Veriler yükleniyor: library=$selectedLibrary, level=$selectedLevel")
                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                 currentWordIndex = 0
                 currentWord = words.firstOrNull()
                 libraries = repository.getAllLibraries()
-                Log.d(TAG, "Veriler yüklendi: ${words.size} kelime, ${libraries.size} kütüphane")
+                // Günlük hedef sayısını hesapla (wrongCount=0 olanlar öğrenilmiş)
+                learnedToday = repository.getLearnedCount(selectedLibrary, selectedLevel)
+                isFlipped = false
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Veri yükleme hatası: ${e.message}", e)
+                Log.e(TAG, "Veri yükleme hatası", e)
                 errorMessage = "Veri yüklenirken hata: ${e.message}"
             }
         }
 
-        // when bloğu - artık try-catch YOK, hata state ile yönetiliyor
         when (currentScreen) {
             "main" -> {
                 AppScreen(
@@ -131,8 +122,9 @@ class MainActivity : ComponentActivity() {
                     selectedLibrary = selectedLibrary,
                     selectedLevel = selectedLevel,
                     totalWordCount = words.size,
-                    dailyGoal = null,
-                    isFlipped = false,
+                    dailyGoal = dailyGoal,
+                    learnedToday = learnedToday,
+                    isFlipped = isFlipped,
                     memorizationThreshold = 3,
                     onKnownClick = {
                         currentWord?.let { w ->
@@ -140,11 +132,12 @@ class MainActivity : ComponentActivity() {
                                 try {
                                     repository.resetIncorrectCount(w.id)
                                     words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                    learnedToday = repository.getLearnedCount(selectedLibrary, selectedLevel)
                                     currentWordIndex = (currentWordIndex + 1) % words.size
                                     currentWord = words.getOrNull(currentWordIndex)
+                                    isFlipped = false
                                 } catch (e: Exception) {
                                     Log.e(TAG, "KnownClick hatası", e)
-                                    errorMessage = "İşlem sırasında hata: ${e.message}"
                                 }
                             }
                         }
@@ -157,14 +150,14 @@ class MainActivity : ComponentActivity() {
                                     words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                                     currentWordIndex = (currentWordIndex + 1) % words.size
                                     currentWord = words.getOrNull(currentWordIndex)
+                                    isFlipped = false
                                 } catch (e: Exception) {
                                     Log.e(TAG, "WrongClick hatası", e)
-                                    errorMessage = "İşlem sırasında hata: ${e.message}"
                                 }
                             }
                         }
                     },
-                    onFlip = { },
+                    onFlip = { isFlipped = !isFlipped },
                     onSpeakClick = { word -> speak(word) },
                     onAddWordClick = { currentScreen = "addWord" },
                     onWordListClick = { currentScreen = "wordList" },
@@ -187,7 +180,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Quiz başlatma hatası", e)
-                                errorMessage = "Quiz başlatılamadı: ${e.message}"
                             }
                         }
                     },
@@ -196,16 +188,32 @@ class MainActivity : ComponentActivity() {
                     onWrongWordsClick = { currentScreen = "wrongWords" },
                     onSettingsClick = { currentScreen = "settings" },
                     onWordClick = { word -> currentWord = word },
-                    onWordLongClick = { word -> currentWord = word }
+                    onWordLongClick = { word -> currentWord = word },
+                    onWordEdit = { word ->
+                        // Edit ekranına git
+                        currentScreen = "wordEdit_${word.id}"
+                    }
                 )
             }
             "addWord" -> {
                 AddWordScreen(
                     libraries = libraries,
-                    onSave = { word, meaning, example, library, level ->
+                    onSave = { word, meaning, meanings, example, examples, library, level ->
                         coroutineScope.launch {
                             try {
-                                repository.addWord(Word(word = word, meaning = meaning, example = example, library = library, level = level))
+                                val meaningsJson = JSONArray(meanings).toString()
+                                val examplesJson = JSONArray(examples).toString()
+                                repository.addWord(
+                                    Word(
+                                        word = word,
+                                        meaning = meaning,
+                                        meanings = meaningsJson,
+                                        example = example,
+                                        examples = examplesJson,
+                                        library = library,
+                                        level = level
+                                    )
+                                )
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                                 currentScreen = "main"
                             } catch (e: Exception) {
@@ -220,14 +228,13 @@ class MainActivity : ComponentActivity() {
             "wordList" -> {
                 WordListScreen(
                     words = words,
-                    onUpdateWord = { id, word, meaning, example, level ->
+                    onUpdateWord = { id, word, meaning, meanings, example, examples, level, library ->
                         coroutineScope.launch {
                             try {
-                                repository.updateWord(id, word, meaning, example, level)
+                                repository.updateWord(id, word, meaning, meanings, example, examples, level, library)
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Kelime güncelleme hatası", e)
-                                errorMessage = "Kelime güncellenemedi: ${e.message}"
                             }
                         }
                     },
@@ -238,7 +245,16 @@ class MainActivity : ComponentActivity() {
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Kelime silme hatası", e)
-                                errorMessage = "Kelime silinemedi: ${e.message}"
+                            }
+                        }
+                    },
+                    onMoveWord = { id, newLibrary ->
+                        coroutineScope.launch {
+                            try {
+                                repository.moveWord(id, newLibrary)
+                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Kelime taşıma hatası", e)
                             }
                         }
                     },
@@ -269,9 +285,12 @@ class MainActivity : ComponentActivity() {
             }
             "goal" -> {
                 GoalScreen(
-                    currentGoal = 10,
-                    completed = 0,
-                    onSaveGoal = { target -> currentScreen = "main" },
+                    currentGoal = dailyGoal,
+                    completed = learnedToday,
+                    onSaveGoal = { target ->
+                        dailyGoal = target
+                        currentScreen = "main"
+                    },
                     onBack = { currentScreen = "main" }
                 )
             }
@@ -292,7 +311,7 @@ class MainActivity : ComponentActivity() {
                                     repository.updateQuizCorrectCount(question.word.id)
                                     repository.resetIncorrectCount(question.word.id)
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Quiz doğru işleme hatası", e)
+                                    Log.e(TAG, "Quiz doğru hatası", e)
                                 }
                             }
                         },
@@ -302,7 +321,7 @@ class MainActivity : ComponentActivity() {
                                     repository.updateQuizWrongCount(question.word.id)
                                     repository.updateIncorrectCount(question.word.id)
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Quiz yanlış işleme hatası", e)
+                                    Log.e(TAG, "Quiz yanlış hatası", e)
                                 }
                             }
                         },
@@ -311,7 +330,7 @@ class MainActivity : ComponentActivity() {
                                 try {
                                     repository.resetIncorrectCount(question.word.id)
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Öğrenildi işaretleme hatası", e)
+                                    Log.e(TAG, "Öğrenildi hatası", e)
                                 }
                             }
                         },
@@ -333,7 +352,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Quiz yeniden başlatma hatası", e)
+                                    Log.e(TAG, "Quiz restart hatası", e)
                                 }
                             }
                         },
@@ -348,7 +367,69 @@ class MainActivity : ComponentActivity() {
                 )
             }
             else -> {
-                currentScreen = "main"
+                // WordEdit ekranı kontrolü
+                if (currentScreen.startsWith("wordEdit_")) {
+                    val wordId = currentScreen.removePrefix("wordEdit_").toIntOrNull()
+                    val editWord = words.find { it.id == wordId }
+                    if (editWord != null) {
+                        WordEditScreen(
+                            word = editWord,
+                            libraries = libraries,
+                            onSave = { word, meaning, meanings, example, examples, level, library ->
+                                coroutineScope.launch {
+                                    try {
+                                        val meaningsJson = JSONArray(meanings).toString()
+                                        val examplesJson = JSONArray(examples).toString()
+                                        repository.updateWord(
+                                            editWord.id, word, meaning, meaningsJson,
+                                            example, examplesJson, level, library
+                                        )
+                                        words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                        currentWord = words.find { it.id == editWord.id }
+                                        currentScreen = "main"
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Kelime güncelleme hatası", e)
+                                    }
+                                }
+                            },
+                            onAction = { action, newLibrary ->
+                                coroutineScope.launch {
+                                    try {
+                                        when (action) {
+                                            WordEditAction.UPDATE -> { /* onSave ile yapılır */ }
+                                            WordEditAction.COPY -> {
+                                                val newWord = editWord.copy(id = 0, library = newLibrary ?: editWord.library)
+                                                repository.addWord(newWord)
+                                            }
+                                            WordEditAction.MOVE -> {
+                                                val targetLib = newLibrary ?: selectedLibrary
+                                                repository.moveWord(editWord.id, targetLib)
+                                                selectedLibrary = targetLib
+                                            }
+                                            WordEditAction.DELETE -> {
+                                                repository.deleteWord(editWord.id)
+                                            }
+                                        }
+                                        words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                        currentWord = null
+                                        currentWordIndex = 0
+                                        if (words.isNotEmpty()) {
+                                            currentWord = words.first()
+                                        }
+                                        currentScreen = "main"
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Kelime işlem hatası", e)
+                                    }
+                                }
+                            },
+                            onBack = { currentScreen = "main" }
+                        )
+                    } else {
+                        currentScreen = "main"
+                    }
+                } else {
+                    currentScreen = "main"
+                }
             }
         }
     }
