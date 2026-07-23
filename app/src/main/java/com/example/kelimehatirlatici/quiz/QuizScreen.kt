@@ -29,11 +29,6 @@ private fun getFirstMeaning(meaning: String): String {
     return meaning.split("|||").firstOrNull()?.trim()?.ifBlank { meaning } ?: meaning
 }
 
-// Yardımcı: Çoklu örnek cümleden sadece ilkini al
-private fun getFirstExample(example: String): String {
-    return example.split("|||").firstOrNull()?.trim()?.ifBlank { example } ?: example
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
@@ -109,7 +104,6 @@ fun QuizScreen(
                         formatTime(elapsedSeconds),
                         modifier = Modifier.padding(end = 8.dp)
                     )
-                    // R.drawable.sound_off/sound_on yerine Material Icon
                     IconButton(onClick = onToggleMute) {
                         if (isSoundMuted) {
                             Icon(Icons.Default.VolumeOff, contentDescription = "Sesi Aç")
@@ -138,7 +132,7 @@ fun QuizScreen(
                     val totalQuestions = correctCount + wrongCount
                     val pct = if (totalQuestions > 0) (correctCount * 100 / totalQuestions) else 0
 
-                    // ★ congrats.gif - başarılı animasyon
+                    // congrats.gif - başarılı animasyon
                     if (pct >= 70) {
                         Image(
                             painter = painterResource(id = R.raw.congrats),
@@ -362,7 +356,7 @@ fun QuizScreen(
                                     showAnswer = true
 
                                     if (isCorrect == true) {
-                                        // ★ DOĞRU ANİMASYONU - success.gif
+                                        // success.gif - doğru animasyonu
                                         showCorrectAnimation = true
                                         onPlayCorrectSound()
                                         onAnswerCorrect(question)
@@ -391,7 +385,7 @@ fun QuizScreen(
                                             }
                                         }
                                     } else {
-                                        // ★ YANLIŞ ANİMASYONU - error.gif
+                                        // error.gif - yanlış animasyonu
                                         showWrongAnimation = true
                                         onPlayWrongSound()
                                         onAnswerWrong(question)
@@ -429,7 +423,7 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // ★ ANİMASYON GÖSTERİMİ
+                    // ANİMASYON GÖSTERİMİ
                     if (showCorrectAnimation) {
                         // success.gif - doğru animasyonu
                         Image(
