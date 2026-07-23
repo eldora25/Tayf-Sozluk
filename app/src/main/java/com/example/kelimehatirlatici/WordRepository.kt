@@ -5,19 +5,23 @@ import com.example.kelimehatirlatici.data.WordDao
 
 class WordRepository(private val wordDao: WordDao) {
 
-    suspend fun addWord(word: Word) {
+    fun getAllWords(): List<Word> {
+        return wordDao.getAllWords()
+    }
+
+    fun addWord(word: Word) {
         wordDao.insert(word)
     }
 
-    suspend fun deleteWord(word: Word) {
+    fun deleteWord(word: Word) {
         wordDao.delete(word)
     }
 
-    suspend fun updateWord(word: Word) {
+    fun updateWord(word: Word) {
         wordDao.update(word)
     }
 
-    suspend fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> {
+    fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> {
         return if (library.isBlank() && level.isBlank()) {
             wordDao.getAllWords()
         } else if (library.isBlank()) {
@@ -29,7 +33,7 @@ class WordRepository(private val wordDao: WordDao) {
         }
     }
 
-    suspend fun getAllLibraries(): List<String> {
+    fun getAllLibraries(): List<String> {
         return wordDao.getAllLibraries()
     }
 
