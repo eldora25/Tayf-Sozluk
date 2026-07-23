@@ -1,5 +1,6 @@
 package com.example.kelimehatirlatici
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,12 +17,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.data.Word
-import com.example.kelimehatirlatici.importer.ExcelImportHelper
 import com.example.kelimehatirlatici.ui.ImportScreen
 import com.example.kelimehatirlatici.ui.theme.KelimeHatirlaticiTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+
+// DataStore extension - Context'e dataStore ekler
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+// Dark mode anahtarı
+private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+
+/**
+ * Dark mode tercihini DataStore'dan okuyan Flow
+ */
+fun Context.getDarkModeFlow(): Flow<Boolean> {
+    return dataStore.data.map { preferences ->
+        preferences[DARK_MODE_KEY] ?: false
+    }
+}
+
+/**
+ * Dark mode tercihini kaydeden suspend fonksiyon
+ */
+suspend fun Context.setDarkModeEnabled(enabled: Boolean) {
+    dataStore.edit { preferences ->
+        preferences[DARK_MODE_KEY] = enabled
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,7 +63,7 @@ class MainActivity : ComponentActivity() {
         val repository = WordRepository(db.wordDao())
 
         setContent {
-            // ✨ DataStore'dan dark mode tercihini oku - BURADA @Composable context içinde!
+            // Dark mode tercihini DataStore'dan oku
             val darkModeFlow = getDarkModeFlow()
             var isDarkMode by remember { mutableStateOf(false) }
 
@@ -45,7 +76,6 @@ class MainActivity : ComponentActivity() {
             KelimeHatirlaticiTheme(darkTheme = isDarkMode) {
                 MainScreen(
                     repository = repository,
-                    coroutineScope = rememberCoroutineScope(),
                     isDarkMode = isDarkMode,
                     onToggleDarkMode = { newValue ->
                         kotlinx.coroutines.MainScope().launch {
@@ -62,10 +92,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(
     repository: WordRepository,
-    coroutineScope: kotlinx.coroutines.CoroutineScope,
     isDarkMode: Boolean,
     onToggleDarkMode: (Boolean) -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("main") }
     var words by remember { mutableStateOf<List<Word>>(emptyList()) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -153,7 +183,7 @@ private fun MainScreen(
                                                 )
                                             }
                                         },
-                                        onClick = { } // Switch zaten tıklanabiliyor
+                                        onClick = { }
                                     )
 
                                     HorizontalDivider()
@@ -626,5 +656,5 @@ private fun MainScreen(
 
 // Dışa aktarma fonksiyonu
 private suspend fun exportWords(repository: WordRepository) {
-    // Bu fonksiyon mevcut haliyle kalabilir
+    // Henüz implemente edilmedi
 }
