@@ -105,7 +105,6 @@ class MainActivity : ComponentActivity() {
                 currentWordIndex = 0
                 currentWord = words.firstOrNull()
                 libraries = repository.getAllLibraries()
-                // Günlük hedef sayısını hesapla (wrongCount=0 olanlar öğrenilmiş)
                 learnedToday = repository.getLearnedCount(selectedLibrary, selectedLevel)
                 isFlipped = false
             } catch (e: Exception) {
@@ -190,7 +189,6 @@ class MainActivity : ComponentActivity() {
                     onWordClick = { word -> currentWord = word },
                     onWordLongClick = { word -> currentWord = word },
                     onWordEdit = { word ->
-                        // Edit ekranına git
                         currentScreen = "wordEdit_${word.id}"
                     }
                 )
@@ -300,6 +298,19 @@ class MainActivity : ComponentActivity() {
                     onBack = { currentScreen = "main" }
                 )
             }
+            "import" -> {
+                ImportScreen(
+                    repository = repository,
+                    onBack = {
+                        currentScreen = "main"
+                        // Import sonrası verileri yenile
+                        coroutineScope.launch {
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            libraries = repository.getAllLibraries()
+                        }
+                    }
+                )
+            }
             "quiz" -> {
                 quizSession?.let { session ->
                     QuizScreen(
@@ -367,7 +378,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
             else -> {
-                // WordEdit ekranı kontrolü
                 if (currentScreen.startsWith("wordEdit_")) {
                     val wordId = currentScreen.removePrefix("wordEdit_").toIntOrNull()
                     val editWord = words.find { it.id == wordId }
@@ -396,7 +406,7 @@ class MainActivity : ComponentActivity() {
                                 coroutineScope.launch {
                                     try {
                                         when (action) {
-                                            WordEditAction.UPDATE -> { /* onSave ile yapılır */ }
+                                            WordEditAction.UPDATE -> { }
                                             WordEditAction.COPY -> {
                                                 val newWord = editWord.copy(id = 0, library = newLibrary ?: editWord.library)
                                                 repository.addWord(newWord)
