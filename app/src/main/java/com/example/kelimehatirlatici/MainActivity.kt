@@ -5,9 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,30 +27,25 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.data.Word
+import com.example.kelimehatirlatici.importer.ExcelImportHelper
 import com.example.kelimehatirlatici.ui.ImportScreen
 import com.example.kelimehatirlatici.ui.theme.KelimeHatirlaticiTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
-// DataStore extension - Context'e dataStore ekler
+// DataStore
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
-// Dark mode anahtarı
 private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
 
-/**
- * Dark mode tercihini DataStore'dan okuyan Flow
- */
 fun Context.getDarkModeFlow(): Flow<Boolean> {
     return dataStore.data.map { preferences ->
         preferences[DARK_MODE_KEY] ?: false
     }
 }
 
-/**
- * Dark mode tercihini kaydeden suspend fonksiyon
- */
 suspend fun Context.setDarkModeEnabled(enabled: Boolean) {
     dataStore.edit { preferences ->
         preferences[DARK_MODE_KEY] = enabled
@@ -63,9 +61,9 @@ class MainActivity : ComponentActivity() {
         val repository = WordRepository(db.wordDao())
 
         setContent {
-            // Dark mode tercihini DataStore'dan oku
             val darkModeFlow = getDarkModeFlow()
             var isDarkMode by remember { mutableStateOf(false) }
+            var isDrawerOpen by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
                 darkModeFlow.collect { isDark ->
@@ -74,14 +72,16 @@ class MainActivity : ComponentActivity() {
             }
 
             KelimeHatirlaticiTheme(darkTheme = isDarkMode) {
-                MainScreen(
+                MainApp(
                     repository = repository,
                     isDarkMode = isDarkMode,
                     onToggleDarkMode = { newValue ->
                         kotlinx.coroutines.MainScope().launch {
                             setDarkModeEnabled(newValue)
                         }
-                    }
+                    },
+                    isDrawerOpen = isDrawerOpen,
+                    onDrawerStateChange = { isDrawerOpen = it }
                 )
             }
         }
@@ -90,12 +90,17 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainScreen(
+private fun MainApp(
     repository: WordRepository,
     isDarkMode: Boolean,
-    onToggleDarkMode: (Boolean) -> Unit
+    onToggleDarkMode: (Boolean) -> Unit,
+    isDrawerOpen: Boolean,
+    onDrawerStateChange: (Boolean) -> Unit
 ) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+
     var currentScreen by remember { mutableStateOf("main") }
     var words by remember { mutableStateOf<List<Word>>(emptyList()) }
     var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -104,9 +109,7 @@ private fun MainScreen(
     var currentWordIndex by remember { mutableIntStateOf(0) }
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var showMeanings by remember { mutableStateOf(false) }
-    var showSettingsMenu by remember { mutableStateOf(false) }
 
-    // Levels
     val levels = remember {
         listOf(
             "A1 - Başlangıç",
@@ -130,331 +133,298 @@ private fun MainScreen(
         }
     }
 
-    when (currentScreen) {
-        "main" -> {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = "Kelime Hatırlatıcı",
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                if (selectedLibrary != "Tümü" || selectedLevel != "Tümü") {
-                                    Text(
-                                        text = "${words.size} kelime | ${if (selectedLibrary == "Tümü") "Tümü" else selectedLibrary}${if (selectedLevel != "Tümü") " / $selectedLevel" else ""}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+    // Drawer state değişimini dışarı bildir
+    LaunchedEffect(drawerState.isOpen) {
+        onDrawerStateChange(drawerState.isOpen)
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContentColor = MaterialTheme.colorScheme.onSurface
+            ) {
+                // Drawer Header
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MenuBook,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Kelime Hatırlatıcı",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Build 1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "384"} - Tayfun Yamak",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Drawer Menü Öğeleri
+                val drawerItems = listOf(
+                    "Ana Sayfa" to Icons.Default.Home,
+                    "Kelime Ekle" to Icons.Default.Add,
+                    "Kelime Listesi" to Icons.Default.List,
+                    "Kütüphane Seç" to Icons.Default.LibraryBooks,
+                    "Seviye Seç" to Icons.Default.Speed,
+                    "İstatistikler" to Icons.Default.BarChart,
+                    "Quiz" to Icons.Default.Quiz,
+                    "İçe Aktar" to Icons.Default.FileUpload,
+                    "Paketler" to Icons.Default.Inventory2,
+                    "Yanlış Kelimeler" to Icons.Default.Error,
+                    "Ayarlar" to Icons.Default.Settings
+                )
+
+                drawerItems.forEach { (title, icon) ->
+                    NavigationDrawerItem(
+                        icon = { Icon(icon, contentDescription = null) },
+                        label = { Text(title) },
+                        selected = false,
+                        onClick = {
+                            coroutineScope.launch {
+                                drawerState.close()
+                            }
+                            when (title) {
+                                "Ana Sayfa" -> { currentScreen = "main" }
+                                "Kelime Ekle" -> { /* Gelecek özellik */ }
+                                "Kelime Listesi" -> { /* Gelecek özellik */ }
+                                "Kütüphane Seç" -> { currentScreen = "library" }
+                                "Seviye Seç" -> { currentScreen = "main" }
+                                "İçe Aktar" -> { currentScreen = "import" }
+                                "Ayarlar" -> {
+                                    // Ayarlar dialogunu aç
                                 }
                             }
                         },
-                        actions = {
-                            // Ayarlar menüsü
-                            Box {
-                                IconButton(onClick = { showSettingsMenu = true }) {
-                                    Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
-                                }
-                                DropdownMenu(
-                                    expanded = showSettingsMenu,
-                                    onDismissRequest = { showSettingsMenu = false }
-                                ) {
-                                    // Karanlık Mod toggle
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("Karanlık Mod")
-                                                }
-                                                Switch(
-                                                    checked = isDarkMode,
-                                                    onCheckedChange = { onToggleDarkMode(it) }
-                                                )
-                                            }
-                                        },
-                                        onClick = { }
-                                    )
-
-                                    HorizontalDivider()
-
-                                    // Kütüphane seçimi
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.LibraryBooks, contentDescription = null, modifier = Modifier.size(20.dp))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Kütüphaneler", fontWeight = FontWeight.Bold)
-                                            }
-                                        },
-                                        onClick = { currentScreen = "library"; showSettingsMenu = false }
-                                    )
-
-                                    libraries.forEach { lib ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    RadioButton(
-                                                        selected = (selectedLibrary == lib),
-                                                        onClick = {
-                                                            selectedLibrary = lib
-                                                            currentWord = null
-                                                            currentWordIndex = 0
-                                                            showSettingsMenu = false
-                                                            coroutineScope.launch {
-                                                                words = repository.getWordsByLibraryAndLevel(
-                                                                    if (selectedLibrary == "Tümü") "" else selectedLibrary,
-                                                                    if (selectedLevel == "Tümü") "" else selectedLevel
-                                                                )
-                                                            }
-                                                        }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(lib)
-                                                }
-                                            },
-                                            onClick = { }
-                                        )
-                                    }
-
-                                    HorizontalDivider()
-
-                                    // Seviye seçimi
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(20.dp))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Seviyeler", fontWeight = FontWeight.Bold)
-                                            }
-                                        },
-                                        onClick = { }
-                                    )
-
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                RadioButton(
-                                                    selected = (selectedLevel == "Tümü"),
-                                                    onClick = {
-                                                        selectedLevel = "Tümü"
-                                                        currentWord = null
-                                                        currentWordIndex = 0
-                                                        showSettingsMenu = false
-                                                        coroutineScope.launch {
-                                                            words = repository.getWordsByLibraryAndLevel(
-                                                                if (selectedLibrary == "Tümü") "" else selectedLibrary,
-                                                                ""
-                                                            )
-                                                        }
-                                                    }
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Tümü")
-                                            }
-                                        },
-                                        onClick = { }
-                                    )
-
-                                    levels.forEach { level ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    RadioButton(
-                                                        selected = (selectedLevel == level),
-                                                        onClick = {
-                                                            selectedLevel = level
-                                                            currentWord = null
-                                                            currentWordIndex = 0
-                                                            showSettingsMenu = false
-                                                            coroutineScope.launch {
-                                                                words = repository.getWordsByLibraryAndLevel(
-                                                                    if (selectedLibrary == "Tümü") "" else selectedLibrary,
-                                                                    if (selectedLevel == "Tümü") "" else selectedLevel
-                                                                )
-                                                            }
-                                                        }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(level)
-                                                }
-                                            },
-                                            onClick = { }
-                                        )
-                                    }
-
-                                    HorizontalDivider()
-
-                                    // İçe Aktar
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(20.dp))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("İçe Aktar")
-                                            }
-                                        },
-                                        onClick = { currentScreen = "import"; showSettingsMenu = false }
-                                    )
-
-                                    // Dışa Aktar
-                                    DropdownMenuItem(
-                                        text = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(20.dp))
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Dışa Aktar")
-                                            }
-                                        },
-                                        onClick = {
-                                            showSettingsMenu = false
-                                            coroutineScope.launch {
-                                                exportWords(repository)
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
-            ) { paddingValues ->
-                Column(
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Dark Mode Switch (Drawer altında)
+                HorizontalDivider()
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
+                        .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (words.isEmpty()) {
-                        // Boş durum
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Karanlık Mod",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isDarkMode,
+                        onCheckedChange = { onToggleDarkMode(it) }
+                    )
+                }
+            }
+        },
+        content = {
+            when (currentScreen) {
+                "main" -> {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Column {
+                                        Text(
+                                            text = "Kelime Hatırlatıcı",
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                        if (selectedLibrary != "Tümü" || selectedLevel != "Tümü") {
+                                            Text(
+                                                text = "${words.size} kelime | ${if (selectedLibrary == "Tümü") "Tümü" else selectedLibrary}${if (selectedLevel != "Tümü") " / $selectedLevel" else ""}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                },
+                                navigationIcon = {
+                                    IconButton(onClick = {
+                                        coroutineScope.launch {
+                                            drawerState.open()
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.Menu, contentDescription = "Menü")
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    ) { paddingValues ->
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                                .padding(paddingValues)
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MenuBook,
-                                contentDescription = null,
-                                modifier = Modifier.size(80.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Henüz kelime eklenmemiş",
-                                style = MaterialTheme.typography.headlineSmall,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Ayarlar > İçe Aktar ile kelime dosyası yükleyin",
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        // Kelime kartı
-                        if (currentWord == null && words.isNotEmpty()) {
-                            LaunchedEffect(words) {
-                                currentWordIndex = 0
-                                currentWord = words.first()
-                            }
-                        }
-
-                        currentWord?.let { word ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
+                            if (words.isEmpty()) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(24.dp),
+                                        .padding(32.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(
-                                        text = word.word,
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.primary
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                     )
-
                                     Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Henüz kelime eklenmemiş",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Menü > İçe Aktar ile kelime dosyası yükleyin",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                if (currentWord == null && words.isNotEmpty()) {
+                                    LaunchedEffect(words) {
+                                        currentWordIndex = 0
+                                        currentWord = words.first()
+                                    }
+                                }
 
-                                    if (showMeanings) {
-                                        HorizontalDivider()
-                                        Spacer(modifier = Modifier.height(16.dp))
-
-                                        // Anlamları göster
-                                        val meaningsList = try {
-                                            org.json.JSONArray(word.meanings).let { arr ->
-                                                (0 until arr.length()).map { arr.getString(it) }
-                                            }
-                                        } catch (e: Exception) {
-                                            listOf(word.meaning)
-                                        }
-
-                                        Text(
-                                            text = "Anlamları:",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.secondary
+                                currentWord?.let { word ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
-
-                                        meaningsList.forEachIndexed { index, meaning ->
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
                                             Text(
-                                                text = "${index + 1}. $meaning",
-                                                style = MaterialTheme.typography.bodyLarge,
+                                                text = word.word,
+                                                style = MaterialTheme.typography.displaySmall.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                ),
                                                 textAlign = TextAlign.Center,
-                                                modifier = Modifier.padding(vertical = 4.dp)
+                                                color = MaterialTheme.colorScheme.primary
                                             )
-                                        }
 
-                                        // Örnek cümle
-                                        if (word.example.isNotBlank()) {
                                             Spacer(modifier = Modifier.height(16.dp))
-                                            HorizontalDivider()
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                text = "Örnek:",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                color = MaterialTheme.colorScheme.tertiary
-                                            )
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = word.example,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                textAlign = TextAlign.Center,
-                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                            )
+
+                                            if (showMeanings) {
+                                                HorizontalDivider()
+                                                Spacer(modifier = Modifier.height(16.dp))
+
+                                                val meaningsList = try {
+                                                    org.json.JSONArray(word.meanings).let { arr ->
+                                                        (0 until arr.length()).map { arr.getString(it) }
+                                                    }
+                                                } catch (e: Exception) {
+                                                    listOf(word.meaning)
+                                                }
+
+                                                Text(
+                                                    text = "Anlamları:",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                                Spacer(modifier = Modifier.height(8.dp))
+
+                                                meaningsList.forEachIndexed { index, meaning ->
+                                                    Text(
+                                                        text = "${index + 1}. $meaning",
+                                                        style = MaterialTheme.typography.bodyLarge,
+                                                        textAlign = TextAlign.Center,
+                                                        modifier = Modifier.padding(vertical = 4.dp)
+                                                    )
+                                                }
+
+                                                if (word.example.isNotBlank()) {
+                                                    Spacer(modifier = Modifier.height(16.dp))
+                                                    HorizontalDivider()
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Text(
+                                                        text = "Örnek:",
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        color = MaterialTheme.colorScheme.tertiary
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = word.example,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        textAlign = TextAlign.Center,
+                                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                                    )
+                                                }
+                                            } else {
+                                                Text(
+                                                    text = "Anlamı görmek için tıklayın",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.height(16.dp))
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceEvenly
+                                            ) {
+                                                Text(
+                                                    text = word.library,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = word.level,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
-                                    } else {
-                                        Text(
-                                            text = "Anlamı görmek için tıklayın",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -463,198 +433,176 @@ private fun MainScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceEvenly
                                     ) {
-                                        Text(
-                                            text = word.library,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = word.level,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Kontrol butonları
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                // Önceki
-                                OutlinedButton(
-                                    onClick = {
-                                        if (currentWordIndex > 0) {
-                                            currentWordIndex--
-                                            currentWord = words[currentWordIndex]
-                                            showMeanings = false
+                                        OutlinedButton(
+                                            onClick = {
+                                                if (currentWordIndex > 0) {
+                                                    currentWordIndex--
+                                                    currentWord = words[currentWordIndex]
+                                                    showMeanings = false
+                                                }
+                                            },
+                                            enabled = currentWordIndex > 0
+                                        ) {
+                                            Icon(Icons.Default.SkipPrevious, contentDescription = null)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Önceki")
                                         }
-                                    },
-                                    enabled = currentWordIndex > 0
-                                ) {
-                                    Icon(Icons.Default.SkipPrevious, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Önceki")
-                                }
 
-                                // Anlamı Göster/Gizle
-                                Button(
-                                    onClick = { showMeanings = !showMeanings },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.secondary
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = if (showMeanings) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (showMeanings) "Gizle" else "Anlamı Göster")
-                                }
-
-                                // Sonraki
-                                OutlinedButton(
-                                    onClick = {
-                                        if (currentWordIndex < words.size - 1) {
-                                            currentWordIndex++
-                                            currentWord = words[currentWordIndex]
-                                            showMeanings = false
+                                        Button(
+                                            onClick = { showMeanings = !showMeanings },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondary
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = if (showMeanings) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                contentDescription = null
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (showMeanings) "Gizle" else "Anlamı Göster")
                                         }
-                                    },
-                                    enabled = currentWordIndex < words.size - 1
-                                ) {
-                                    Text("Sonraki")
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(Icons.Default.SkipNext, contentDescription = null)
-                                }
-                            }
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // İlerleme
-                            Text(
-                                text = "${currentWordIndex + 1} / ${words.size}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            // Kelime arama
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = "",
-                                onValueChange = { query ->
-                                    if (query.isNotBlank()) {
-                                        val index = words.indexOfFirst {
-                                            it.word.contains(query, ignoreCase = true)
-                                        }
-                                        if (index >= 0) {
-                                            currentWordIndex = index
-                                            currentWord = words[index]
-                                            showMeanings = false
+                                        OutlinedButton(
+                                            onClick = {
+                                                if (currentWordIndex < words.size - 1) {
+                                                    currentWordIndex++
+                                                    currentWord = words[currentWordIndex]
+                                                    showMeanings = false
+                                                }
+                                            },
+                                            enabled = currentWordIndex < words.size - 1
+                                        ) {
+                                            Text("Sonraki")
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(Icons.Default.SkipNext, contentDescription = null)
                                         }
                                     }
-                                },
-                                label = { Text("Kelime Ara...") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                trailingIcon = {
-                                    Icon(Icons.Default.Search, contentDescription = "Ara")
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text(
+                                        text = "${currentWordIndex + 1} / ${words.size}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = "",
+                                        onValueChange = { query ->
+                                            if (query.isNotBlank()) {
+                                                val index = words.indexOfFirst {
+                                                    it.word.contains(query, ignoreCase = true)
+                                                }
+                                                if (index >= 0) {
+                                                    currentWordIndex = index
+                                                    currentWord = words[index]
+                                                    showMeanings = false
+                                                }
+                                            }
+                                        },
+                                        label = { Text("Kelime Ara...") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        trailingIcon = {
+                                            Icon(Icons.Default.Search, contentDescription = "Ara")
+                                        }
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        "library" -> {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Kütüphaneler") },
-                        navigationIcon = {
-                            IconButton(onClick = { currentScreen = "main" }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                "library" -> {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = { Text("Kütüphaneler") },
+                                navigationIcon = {
+                                    IconButton(onClick = {
+                                        currentScreen = "main"
+                                    }) {
+                                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    ) { paddingValues ->
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(16.dp)
+                        ) {
+                            items(libraries) { library ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    onClick = {
+                                        selectedLibrary = library
+                                        currentWord = null
+                                        currentWordIndex = 0
+                                        currentScreen = "main"
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.LibraryBooks,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = library,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                "import" -> {
+                    ImportScreen(
+                        repository = repository,
+                        onBack = {
+                            currentScreen = "main"
+                        },
+                        onImportComplete = {
+                            scope.launch {
+                                words = repository.getWordsByLibraryAndLevel(
+                                    if (selectedLibrary == "Tümü") "" else selectedLibrary,
+                                    if (selectedLevel == "Tümü") "" else selectedLevel
+                                )
+                                libraries = repository.getAllLibraries()
+                                if (words.isNotEmpty()) {
+                                    currentWord = words.first()
+                                    currentWordIndex = 0
+                                }
                             }
                         }
                     )
                 }
-            ) { paddingValues ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                ) {
-                    items(libraries) { library ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            onClick = {
-                                selectedLibrary = library
-                                currentWord = null
-                                currentWordIndex = 0
-                                currentScreen = "main"
-                            }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LibraryBooks,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = library,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                Icon(
-                                    Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
-
-        "import" -> {
-            ImportScreen(
-                repository = repository,
-                onBack = {
-                    currentScreen = "main"
-                },
-                onImportComplete = {
-                    coroutineScope.launch {
-                        words = repository.getWordsByLibraryAndLevel(
-                            if (selectedLibrary == "Tümü") "" else selectedLibrary,
-                            if (selectedLevel == "Tümü") "" else selectedLevel
-                        )
-                        libraries = repository.getAllLibraries()
-                        if (words.isNotEmpty()) {
-                            currentWord = words.first()
-                            currentWordIndex = 0
-                        }
-                    }
-                }
-            )
-        }
-    }
-}
-
-// Dışa aktarma fonksiyonu
-private suspend fun exportWords(repository: WordRepository) {
-    // Henüz implemente edilmedi
+    )
 }
