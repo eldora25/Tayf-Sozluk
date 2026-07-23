@@ -2,6 +2,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+    // Kotlin Compose Plugin - Kotlin 2.0+ için ZORUNLU
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -13,7 +15,7 @@ android {
         minSdk = 24
         targetSdk = 35
         
-        // Build numarasını GitHub Actions'dan al, yoksa 264 kullan
+        // GitHub Actions'da GITHUB_RUN_NUMBER varsa onu kullan, yoksa 264
         val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 264
         versionCode = buildNumber
         versionName = "1.0.$buildNumber"
@@ -36,9 +38,7 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
-    }
+    // ✨ KALDIRILDI: composeOptions - Kotlin 2.0+ ile compose compiler plugin kullanılıyor
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
