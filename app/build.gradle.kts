@@ -19,9 +19,6 @@ android {
         versionName = "1.0.$buildNumber"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // APK çıktı adı için arkiveBaseName
-        archivesBaseName = "KelimeHatirlatici-V${versionName}"
     }
 
     buildTypes {
