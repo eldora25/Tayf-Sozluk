@@ -7,8 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,14 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.data.Word
+import com.example.kelimehatirlatici.importer.ExcelImportHelper
 import com.example.kelimehatirlatici.ui.ImportScreen
 import com.example.kelimehatirlatici.ui.theme.KelimeHatirlaticiTheme
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,27 +30,25 @@ class MainActivity : ComponentActivity() {
 
         val db = AppDatabase.getInstance(this)
         val repository = WordRepository(db.wordDao())
-        val coroutineScope = rememberCoroutineScope()
-
-        // DataStore'dan dark mode tercihini oku
-        val darkModeFlow = getDarkModeFlow()
-        var isDarkMode by mutableStateOf(false)
-
-        // Dark mode değişimlerini dinle
-        LaunchedEffect(Unit) {
-            darkModeFlow.collect { isDark ->
-                isDarkMode = isDark
-            }
-        }
 
         setContent {
+            // ✨ DataStore'dan dark mode tercihini oku - BURADA @Composable context içinde!
+            val darkModeFlow = getDarkModeFlow()
+            var isDarkMode by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                darkModeFlow.collect { isDark ->
+                    isDarkMode = isDark
+                }
+            }
+
             KelimeHatirlaticiTheme(darkTheme = isDarkMode) {
                 MainScreen(
                     repository = repository,
-                    coroutineScope = coroutineScope,
+                    coroutineScope = rememberCoroutineScope(),
                     isDarkMode = isDarkMode,
                     onToggleDarkMode = { newValue ->
-                        coroutineScope.launch {
+                        kotlinx.coroutines.MainScope().launch {
                             setDarkModeEnabled(newValue)
                         }
                     }
@@ -634,6 +628,3 @@ private fun MainScreen(
 private suspend fun exportWords(repository: WordRepository) {
     // Bu fonksiyon mevcut haliyle kalabilir
 }
-
-@Composable
-private fun rememberCoroutineScope() = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
