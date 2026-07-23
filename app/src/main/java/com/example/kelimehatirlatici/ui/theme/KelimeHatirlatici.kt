@@ -1,87 +1,54 @@
 package com.example.kelimehatirlatici.ui.theme
 
-import android.content.Context
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.*
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-
-// DataStore extension
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
-// Dark mode anahtarı
-private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 // Açık renk şeması (Light Theme)
 private val LightColorScheme = lightColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF1976D2),
-    onPrimary = androidx.compose.ui.graphics.Color.White,
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFBBDEFB),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF001F3F),
-    secondary = androidx.compose.ui.graphics.Color(0xFF43A047),
-    onSecondary = androidx.compose.ui.graphics.Color.White,
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFC8E6C9),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF002106),
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFF6F00),
-    onTertiary = androidx.compose.ui.graphics.Color.White,
-    background = androidx.compose.ui.graphics.Color(0xFFF5F5F5),
-    onBackground = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-    surface = androidx.compose.ui.graphics.Color.White,
-    onSurface = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFE7E0EC),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF49454F),
-    error = androidx.compose.ui.graphics.Color(0xFFB00020),
-    onError = androidx.compose.ui.graphics.Color.White
+    primary = Color(0xFF1976D2),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFBBDEFB),
+    onPrimaryContainer = Color(0xFF001F3F),
+    secondary = Color(0xFF43A047),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFC8E6C9),
+    onSecondaryContainer = Color(0xFF002106),
+    tertiary = Color(0xFFFF6F00),
+    onTertiary = Color.White,
+    background = Color(0xFFF5F5F5),
+    onBackground = Color(0xFF1C1B1F),
+    surface = Color.White,
+    onSurface = Color(0xFF1C1B1F),
+    surfaceVariant = Color(0xFFE7E0EC),
+    onSurfaceVariant = Color(0xFF49454F),
+    error = Color(0xFFB00020),
+    onError = Color.White
 )
 
 // Koyu renk şeması (Dark Theme)
 private val DarkColorScheme = darkColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF90CAF9),
-    onPrimary = androidx.compose.ui.graphics.Color(0xFF003258),
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFF00497D),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFD1E4FF),
-    secondary = androidx.compose.ui.graphics.Color(0xFF81C784),
-    onSecondary = androidx.compose.ui.graphics.Color(0xFF003908),
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF1B5E20),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFC8E6C9),
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFFB74D),
-    onTertiary = androidx.compose.ui.graphics.Color(0xFF462A00),
-    background = androidx.compose.ui.graphics.Color(0xFF121212),
-    onBackground = androidx.compose.ui.graphics.Color(0xFFE6E1E5),
-    surface = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
-    onSurface = androidx.compose.ui.graphics.Color(0xFFE6E1E5),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF2D2D2D),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFCAC4D0),
-    error = androidx.compose.ui.graphics.Color(0xFFCF6679),
-    onError = androidx.compose.ui.graphics.Color(0xFF601410)
+    primary = Color(0xFF90CAF9),
+    onPrimary = Color(0xFF003258),
+    primaryContainer = Color(0xFF00497D),
+    onPrimaryContainer = Color(0xFFD1E4FF),
+    secondary = Color(0xFF81C784),
+    onSecondary = Color(0xFF003908),
+    secondaryContainer = Color(0xFF1B5E20),
+    onSecondaryContainer = Color(0xFFC8E6C9),
+    tertiary = Color(0xFFFFB74D),
+    onTertiary = Color(0xFF462A00),
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFE6E1E5),
+    surface = Color(0xFF1E1E1E),
+    onSurface = Color(0xFFE6E1E5),
+    surfaceVariant = Color(0xFF2D2D2D),
+    onSurfaceVariant = Color(0xFFCAC4D0),
+    error = Color(0xFFCF6679),
+    onError = Color(0xFF601410)
 )
-
-/**
- * Dark mode tercihini DataStore'dan okuyan Flow
- */
-fun Context.getDarkModeFlow(): Flow<Boolean> {
-    return dataStore.data.map { preferences ->
-        preferences[DARK_MODE_KEY] ?: false
-    }
-}
-
-/**
- * Dark mode tercihini kaydeden fonksiyon
- */
-suspend fun Context.setDarkModeEnabled(enabled: Boolean) {
-    dataStore.edit { preferences ->
-        preferences[DARK_MODE_KEY] = enabled
-    }
-}
 
 /**
  * Uygulama teması - Dark mode tercihine göre otomatik ayarlanır
