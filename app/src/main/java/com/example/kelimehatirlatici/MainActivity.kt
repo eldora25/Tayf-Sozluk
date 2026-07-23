@@ -10,7 +10,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.kelimehatirlatici.data.AppDatabase
-import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.quiz.*
 import com.example.kelimehatirlatici.ui.*
@@ -63,21 +62,14 @@ class MainActivity : ComponentActivity() {
         var currentWord by remember { mutableStateOf<Word?>(null) }
         var currentScreen by remember { mutableStateOf("main") }
         var libraries by remember { mutableStateOf<List<String>>(listOf("Genel")) }
-        var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
         var quizSession by remember { mutableStateOf<QuizSession?>(null) }
         var isSoundMuted by remember { mutableStateOf(false) }
 
         LaunchedEffect(selectedLibrary, selectedLevel) {
-            try {
-                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                currentWordIndex = 0
-                currentWord = words.firstOrNull()
-                libraries = repository.getAllLibraries()
-                dailyGoal = repository.getDailyGoal()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                // Hata durumunda boş değerlerle devam et
-            }
+            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+            currentWordIndex = 0
+            currentWord = words.firstOrNull()
+            libraries = repository.getAllLibraries()
         }
 
         when (currentScreen) {
@@ -88,35 +80,26 @@ class MainActivity : ComponentActivity() {
                     selectedLibrary = selectedLibrary,
                     selectedLevel = selectedLevel,
                     totalWordCount = words.size,
-                    dailyGoal = dailyGoal,
+                    dailyGoal = null,
                     isFlipped = false,
                     memorizationThreshold = 3,
                     onKnownClick = {
                         currentWord?.let { w ->
                             coroutineScope.launch {
-                                try {
-                                    repository.resetIncorrectCount(w.id)
-                                    words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                    currentWordIndex = (currentWordIndex + 1) % words.size
-                                    currentWord = words.getOrNull(currentWordIndex)
-                                    dailyGoal = repository.getDailyGoal()
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                repository.resetIncorrectCount(w.id)
+                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                currentWordIndex = (currentWordIndex + 1) % words.size
+                                currentWord = words.getOrNull(currentWordIndex)
                             }
                         }
                     },
                     onWrongClick = {
                         currentWord?.let { w ->
                             coroutineScope.launch {
-                                try {
-                                    repository.updateIncorrectCount(w.id)
-                                    words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                    currentWordIndex = (currentWordIndex + 1) % words.size
-                                    currentWord = words.getOrNull(currentWordIndex)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                repository.updateIncorrectCount(w.id)
+                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                currentWordIndex = (currentWordIndex + 1) % words.size
+                                currentWord = words.getOrNull(currentWordIndex)
                             }
                         }
                     },
@@ -130,19 +113,15 @@ class MainActivity : ComponentActivity() {
                     onStatsClick = { currentScreen = "stats" },
                     onQuizClick = {
                         coroutineScope.launch {
-                            try {
-                                val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                if (wordsForQuiz.isNotEmpty()) {
-                                    val questions = quizGenerator.generateQuestions(wordsForQuiz)
-                                    if (questions.isNotEmpty()) {
-                                        val session = QuizSession()
-                                        session.questions = questions.toMutableList()
-                                        quizSession = session
-                                        currentScreen = "quiz"
-                                    }
+                            val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            if (wordsForQuiz.isNotEmpty()) {
+                                val questions = quizGenerator.generateQuestions(wordsForQuiz)
+                                if (questions.isNotEmpty()) {
+                                    val session = QuizSession()
+                                    session.questions = questions.toMutableList()
+                                    quizSession = session
+                                    currentScreen = "quiz"
                                 }
-                            } catch (e: Exception) {
-                                e.printStackTrace()
                             }
                         }
                     },
@@ -159,13 +138,9 @@ class MainActivity : ComponentActivity() {
                     libraries = libraries,
                     onSave = { word, meaning, example, library, level ->
                         coroutineScope.launch {
-                            try {
-                                repository.addWord(Word(word = word, meaning = meaning, example = example, library = library, level = level))
-                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                currentScreen = "main"
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+                            repository.addWord(Word(word = word, meaning = meaning, example = example, library = library, level = level))
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                            currentScreen = "main"
                         }
                     },
                     onBack = { currentScreen = "main" }
@@ -176,22 +151,14 @@ class MainActivity : ComponentActivity() {
                     words = words,
                     onUpdateWord = { id, word, meaning, example, level ->
                         coroutineScope.launch {
-                            try {
-                                repository.updateWord(id, word, meaning, example, level)
-                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+                            repository.updateWord(id, word, meaning, example, level)
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
                     onDeleteWord = { id ->
                         coroutineScope.launch {
-                            try {
-                                repository.deleteWord(id)
-                                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+                            repository.deleteWord(id)
+                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
                     onBack = { currentScreen = "main" }
@@ -221,19 +188,9 @@ class MainActivity : ComponentActivity() {
             }
             "goal" -> {
                 GoalScreen(
-                    currentGoal = dailyGoal?.targetCount ?: 10,
-                    completed = dailyGoal?.completedCount ?: 0,
-                    onSaveGoal = { target ->
-                        coroutineScope.launch {
-                            try {
-                                repository.updateDailyGoal(target)
-                                dailyGoal = repository.getDailyGoal()
-                                currentScreen = "main"
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-                    },
+                    currentGoal = 10,
+                    completed = 0,
+                    onSaveGoal = { target -> currentScreen = "main" },
                     onBack = { currentScreen = "main" }
                 )
             }
@@ -250,31 +207,19 @@ class MainActivity : ComponentActivity() {
                         memorizationThreshold = 3,
                         onAnswerCorrect = { question ->
                             coroutineScope.launch {
-                                try {
-                                    repository.updateQuizCorrectCount(question.word.id)
-                                    repository.resetIncorrectCount(question.word.id)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                repository.updateQuizCorrectCount(question.word.id)
+                                repository.resetIncorrectCount(question.word.id)
                             }
                         },
                         onAnswerWrong = { question ->
                             coroutineScope.launch {
-                                try {
-                                    repository.updateQuizWrongCount(question.word.id)
-                                    repository.updateIncorrectCount(question.word.id)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                repository.updateQuizWrongCount(question.word.id)
+                                repository.updateIncorrectCount(question.word.id)
                             }
                         },
                         onMarkLearned = { question ->
                             coroutineScope.launch {
-                                try {
-                                    repository.resetIncorrectCount(question.word.id)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                repository.resetIncorrectCount(question.word.id)
                             }
                         },
                         onSpeak = { wordText -> speak(wordText) },
@@ -284,18 +229,14 @@ class MainActivity : ComponentActivity() {
                         onToggleMute = { isSoundMuted = !isSoundMuted },
                         onRestartQuiz = {
                             coroutineScope.launch {
-                                try {
-                                    val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                    if (wordsForQuiz.isNotEmpty()) {
-                                        val questions = quizGenerator.generateQuestions(wordsForQuiz)
-                                        if (questions.isNotEmpty()) {
-                                            val session = QuizSession()
-                                            session.questions = questions.toMutableList()
-                                            quizSession = session
-                                        }
+                                val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                                if (wordsForQuiz.isNotEmpty()) {
+                                    val questions = quizGenerator.generateQuestions(wordsForQuiz)
+                                    if (questions.isNotEmpty()) {
+                                        val session = QuizSession()
+                                        session.questions = questions.toMutableList()
+                                        quizSession = session
                                     }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
                                 }
                             }
                         },
