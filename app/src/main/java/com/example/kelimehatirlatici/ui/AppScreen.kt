@@ -1,5 +1,5 @@
 package com.example.kelimehatirlatici.ui
-
+import com.example.kelimehatirlatici.BuildConfig
 import android.speech.tts.TextToSpeech
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -108,11 +108,11 @@ fun AppScreen(
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
-                        Text(
-                            text = "Build 1.0 - Tayfun Yamak",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                        )
+                       Text(
+    text = "Build ${BuildConfig.VERSION_NAME} - Tayfun Yamak©",
+    style = MaterialTheme.typography.bodySmall,
+    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+)
                     }
                 }
 
