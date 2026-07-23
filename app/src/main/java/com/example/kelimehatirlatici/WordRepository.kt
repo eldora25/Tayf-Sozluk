@@ -1,80 +1,58 @@
 package com.example.kelimehatirlatici
 
+import androidx.lifecycle.LiveData
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.data.WordDao
 
 class WordRepository(private val wordDao: WordDao) {
 
-    fun getAllWords(): List<Word> {
-        return wordDao.getAllWords()
+    val allWords: LiveData<List<Word>> = wordDao.getAllWords()
+
+    suspend fun addWord(word: Word) {
+        // Aynı kelimeyi ve anlamı kontrol et
+        val existingWords = wordDao.getWordByName(word.word)
+        val exists = existingWords.any {
+            it.word == word.word && it.meaning == word.meaning &&
+            it.library == word.library
+        }
+        if (!exists) {
+            wordDao.insert(word)
+        }
     }
 
-    fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> {
-        return wordDao.getWordsByLibraryAndLevel(library, level)
+    suspend fun deleteWord(word: Word) {
+        wordDao.delete(word)
     }
 
-    fun addWord(word: Word) {
-        wordDao.addWord(word)
+    suspend fun updateWord(word: Word) {
+        wordDao.update(word)
     }
 
-    fun getAllLibraries(): List<String> {
+    suspend fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> {
+        return if (library.isBlank() && level.isBlank()) {
+            wordDao.getAllWordsSync()
+        } else if (library.isBlank()) {
+            wordDao.getWordsByLevel(level)
+        } else if (level.isBlank()) {
+            wordDao.getWordsByLibrary(library)
+        } else {
+            wordDao.getWordsByLibraryAndLevel(library, level)
+        }
+    }
+
+    suspend fun getAllLibraries(): List<String> {
         return wordDao.getAllLibraries()
     }
 
-    fun getAllLevels(): List<String> {
-        return wordDao.getAllLevels()
+    suspend fun searchWords(query: String): List<Word> {
+        return wordDao.searchWords("%$query%")
     }
 
-    fun getWordById(wordId: Int): Word? {
-        return wordDao.getWordById(wordId)
+    fun getWordCountByLibrary(library: String): Int {
+        return wordDao.getWordCountByLibrary(library)
     }
 
-    fun getLearnedCount(library: String, level: String): Int {
-        return wordDao.getLearnedCount(library, level)
-    }
-
-    fun getLearningCount(library: String, level: String): Int {
-        return wordDao.getLearningCount(library, level)
-    }
-
-    fun updateIncorrectCount(wordId: Int) {
-        val word = wordDao.getWordById(wordId)
-        if (word != null) {
-            wordDao.updateIncorrectCount(wordId, word.wrongCount + 1)
-        }
-    }
-
-    fun resetIncorrectCount(wordId: Int) {
-        wordDao.updateIncorrectCount(wordId, 0)
-    }
-
-    fun updateQuizCorrectCount(wordId: Int) {
-        val word = wordDao.getWordById(wordId)
-        if (word != null) {
-            wordDao.updateQuizCorrectCount(wordId, word.quizCorrectCount + 1)
-        }
-    }
-
-    fun updateQuizWrongCount(wordId: Int) {
-        val word = wordDao.getWordById(wordId)
-        if (word != null) {
-            wordDao.updateQuizWrongCount(wordId, word.quizWrongCount + 1)
-        }
-    }
-
-    fun updateWord(id: Int, word: String, meaning: String, meanings: String, example: String, examples: String, level: String, library: String) {
-        wordDao.updateWord(id, word, meaning, meanings, example, examples, level, library)
-    }
-
-    fun moveWord(wordId: Int, newLibrary: String) {
-        wordDao.moveWord(wordId, newLibrary)
-    }
-
-    fun deleteWord(id: Int) {
-        wordDao.deleteWord(id)
-    }
-
-    fun copyWord(word: Word): Word {
-        return word.copy(id = 0)
+    fun getWordCountByLibraryAndLevel(library: String, level: String): Int {
+        return wordDao.getWordCountByLibraryAndLevel(library, level)
     }
 }
