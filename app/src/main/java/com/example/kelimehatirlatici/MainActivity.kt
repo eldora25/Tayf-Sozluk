@@ -10,7 +10,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.kelimehatirlatici.data.AppDatabase
-import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.quiz.*
 import com.example.kelimehatirlatici.ui.*
@@ -64,7 +63,6 @@ class MainActivity : ComponentActivity() {
         var currentWord by remember { mutableStateOf<Word?>(null) }
         var currentScreen by remember { mutableStateOf("main") }
         var libraries by remember { mutableStateOf<List<String>>(listOf("Genel")) }
-        var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
         var quizSession by remember { mutableStateOf<QuizSession?>(null) }
         var isSoundMuted by remember { mutableStateOf(false) }
 
@@ -74,7 +72,6 @@ class MainActivity : ComponentActivity() {
             currentWordIndex = 0
             currentWord = words.firstOrNull()
             libraries = repository.getAllLibraries()
-            dailyGoal = repository.getDailyGoal()
         }
 
         // Ekran yönlendirme
@@ -86,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     selectedLibrary = selectedLibrary,
                     selectedLevel = selectedLevel,
                     totalWordCount = words.size,
-                    dailyGoal = dailyGoal,
+                    dailyGoal = null,  // dailyGoal kaldırıldı
                     isFlipped = false,
                     memorizationThreshold = 3,
                     onKnownClick = {
@@ -96,7 +93,6 @@ class MainActivity : ComponentActivity() {
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                                 currentWordIndex = (currentWordIndex + 1) % words.size
                                 currentWord = words.getOrNull(currentWordIndex)
-                                dailyGoal = repository.getDailyGoal()
                             }
                         }
                     },
@@ -198,14 +194,10 @@ class MainActivity : ComponentActivity() {
             }
             "goal" -> {
                 GoalScreen(
-                    currentGoal = dailyGoal?.targetCount ?: 10,
-                    completed = dailyGoal?.completedCount ?: 0,
+                    currentGoal = 10,
+                    completed = 0,
                     onSaveGoal = { target ->
-                        coroutineScope.launch {
-                            repository.updateDailyGoal(target)
-                            dailyGoal = repository.getDailyGoal()
-                            currentScreen = "main"
-                        }
+                        currentScreen = "main"
                     },
                     onBack = { currentScreen = "main" }
                 )
