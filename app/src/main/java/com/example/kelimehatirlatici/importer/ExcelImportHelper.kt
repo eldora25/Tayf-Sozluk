@@ -6,7 +6,7 @@ import android.util.Log
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.WordRepository
 import org.json.JSONArray
-import java.io.InputStreamReader
+import java.nio.charset.Charset
 
 /**
  * Dosyalardan kelime içe aktarma yardımcı sınıfı.
@@ -27,13 +27,15 @@ object ExcelImportHelper {
      * @param repository WordRepository
      * @param uri Dosya URI'si
      * @param libraryName Kullanıcının seçtiği kütüphane adı
+     * @param charsetName Dosyanın karakter kodlaması (UTF-8, ISO-8859-9, vb.)
      * @return Pair<eklenenSayı, atlananSayı>
      */
     fun importFile(
         context: Context,
         repository: WordRepository,
         uri: Uri,
-        libraryName: String = "Genel"
+        libraryName: String = "Genel",
+        charsetName: String = "UTF-8"
     ): Pair<Int, Int> {
         var imported = 0
         var skipped = 0
@@ -42,11 +44,12 @@ object ExcelImportHelper {
             val inputStream = context.contentResolver.openInputStream(uri)
                 ?: throw Exception("Dosya açılamadı!")
 
-            // ✨ DÜZELTİLDİ: UTF-8 karakter kodlaması açıkça belirtildi
-            val content = inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            // ✨ DÜZELTİLDİ: Kullanıcının seçtiği karakter kodlaması kullanılıyor
+            val charset = Charset.forName(charsetName)
+            val content = inputStream.bufferedReader(charset).use { it.readText() }
             val lines = content.lines().filter { it.isNotBlank() }
 
-            Log.d(TAG, "Dosya okundu: ${lines.size} satır, kütüphane: $libraryName")
+            Log.d(TAG, "Dosya okundu: ${lines.size} satır, kütüphane: $libraryName, kodlama: $charsetName")
 
             // Her satırı işle
             for (line in lines) {
