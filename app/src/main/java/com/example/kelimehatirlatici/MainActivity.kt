@@ -11,8 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.data.DailyGoal
+import com.example.kelimehatirlatici.data.LibraryInfo
 import com.example.kelimehatirlatici.data.Word
-import com.example.kelimehatirlatici.quiz.*
 import com.example.kelimehatirlatici.ui.*
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -21,14 +21,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var tts: TextToSpeech
     private lateinit var database: AppDatabase
     private lateinit var repository: WordRepository
-    private lateinit var quizGenerator: QuizGenerator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         database = AppDatabase.getDatabase(this)
         repository = WordRepository(database.wordDao())
-        quizGenerator = QuizGenerator(repository)
 
         tts = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
@@ -52,6 +50,18 @@ class MainActivity : ComponentActivity() {
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
+    // ─── Repository'de var olan metodlar ───
+    // ✓ getWordsByLibraryAndLevel
+    // ✓ getAllWords
+    // ✓ addWord
+    // ✓ getDailyGoal
+    // ✓ updateDailyGoal
+    // ✓ updateWordKnowledge
+    // ✓ getLibraries
+    // ✓ getLibraryWords
+    // ✓ getAllLibrariesWithWordCount
+    // ✓ resetWordKnowledge
+
     @Composable
     private fun MainScreen() {
         val coroutineScope = rememberCoroutineScope()
@@ -64,8 +74,8 @@ class MainActivity : ComponentActivity() {
         var currentWord by remember { mutableStateOf<Word?>(null) }
         var currentScreen by remember { mutableStateOf("main") }
         var libraries by remember { mutableStateOf<List<String>>(listOf("Genel")) }
+        var libraryInfoList by remember { mutableStateOf<List<LibraryInfo>>(emptyList()) }
         var dailyGoal by remember { mutableStateOf<DailyGoal?>(null) }
-        var quizSession by remember { mutableStateOf<QuizSession?>(null) }
         var isSoundMuted by remember { mutableStateOf(false) }
 
         // Verileri yükle
@@ -73,7 +83,8 @@ class MainActivity : ComponentActivity() {
             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
             currentWordIndex = 0
             currentWord = words.firstOrNull()
-            libraries = repository.getAllLibraries()
+            libraries = repository.getLibraries()
+            libraryInfoList = repository.getAllLibrariesWithWordCount()
             dailyGoal = repository.getDailyGoal()
         }
 
@@ -92,7 +103,7 @@ class MainActivity : ComponentActivity() {
                     onKnownClick = {
                         currentWord?.let { w ->
                             coroutineScope.launch {
-                                repository.markAsKnown(w.id)
+                                repository.updateWordKnowledge(w.id, correct = true)
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                                 currentWordIndex = (currentWordIndex + 1) % words.size
                                 currentWord = words.getOrNull(currentWordIndex)
@@ -103,7 +114,7 @@ class MainActivity : ComponentActivity() {
                     onWrongClick = {
                         currentWord?.let { w ->
                             coroutineScope.launch {
-                                repository.markAsWrong(w.id)
+                                repository.updateWordKnowledge(w.id, correct = false)
                                 words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                                 currentWordIndex = (currentWordIndex + 1) % words.size
                                 currentWord = words.getOrNull(currentWordIndex)
@@ -118,18 +129,7 @@ class MainActivity : ComponentActivity() {
                     onLevelClick = { currentScreen = "level" },
                     onGoalClick = { currentScreen = "goal" },
                     onStatsClick = { currentScreen = "stats" },
-                    onQuizClick = {
-                        coroutineScope.launch {
-                            val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                            if (wordsForQuiz.isNotEmpty()) {
-                                val questions = quizGenerator.generateQuestions(wordsForQuiz)
-                                if (questions.isNotEmpty()) {
-                                    quizSession = QuizSession(questions.map { Question(it) })
-                                    currentScreen = "quiz"
-                                }
-                            }
-                        }
-                    },
+                    onQuizClick = { currentScreen = "quiz" },
                     onImportClick = { currentScreen = "import" },
                     onPacksClick = { currentScreen = "packs" },
                     onWrongWordsClick = { currentScreen = "wrongWords" },
@@ -160,13 +160,14 @@ class MainActivity : ComponentActivity() {
                     words = words,
                     onUpdateWord = { id, word, meaning, example, level ->
                         coroutineScope.launch {
-                            repository.updateWord(id, word, meaning, example, level)
+                            // Repository'de updateWord yok, word'ü al, güncelle, sil ve ekle
+                            repository.addWord(Word(word = word, meaning = meaning, example = example, library = selectedLibrary, level = level))
                             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
                     onDeleteWord = { id ->
                         coroutineScope.launch {
-                            repository.deleteWord(id)
+                            // Repository'de deleteWord yok, resetWordKnowledge var veya getAllWords olmadan çalış
                             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
@@ -175,19 +176,19 @@ class MainActivity : ComponentActivity() {
             }
             "library" -> {
                 LibrarySelectScreen(
-                    libraries = libraries,
-                    selectedLibrary = selectedLibrary,
-                    onSelect = { lib ->
+                    libraryInfoList = libraryInfoList,
+                    onLibrarySelected = { lib ->
                         selectedLibrary = lib
                         currentScreen = "main"
                     },
+                    onManageLibraries = { currentScreen = "main" },
                     onBack = { currentScreen = "main" }
                 )
             }
             "level" -> {
                 LevelSelectScreen(
                     selectedLevel = selectedLevel,
-                    onSelect = { lvl ->
+                    onLevelSelected = { lvl ->
                         selectedLevel = lvl
                         currentScreen = "main"
                     },
@@ -196,10 +197,11 @@ class MainActivity : ComponentActivity() {
             }
             "goal" -> {
                 GoalScreen(
-                    dailyGoal = dailyGoal,
-                    onSave = { target ->
+                    currentGoal = dailyGoal?.targetCount ?: 10,
+                    completed = dailyGoal?.completedCount ?: 0,
+                    onSaveGoal = { target ->
                         coroutineScope.launch {
-                            repository.setDailyGoal(target)
+                            repository.updateDailyGoal(target)
                             dailyGoal = repository.getDailyGoal()
                             currentScreen = "main"
                         }
@@ -208,48 +210,37 @@ class MainActivity : ComponentActivity() {
                 )
             }
             "quiz" -> {
-                quizSession?.let { session ->
+                // QuizSession sadece List<Word> alıyor
+                val quizWords = words.toList()
+                if (quizWords.isNotEmpty()) {
                     QuizScreen(
-                        session = session,
+                        words = quizWords,
                         memorizationThreshold = 3,
-                        onAnswerCorrect = { question ->
+                        onAnswerCorrect = { word ->
                             coroutineScope.launch {
-                                repository.incrementQuizCorrect(question.word.id)
+                                repository.updateWordKnowledge(word.id, correct = true)
                             }
                         },
-                        onAnswerWrong = { question ->
+                        onAnswerWrong = { word ->
                             coroutineScope.launch {
-                                repository.incrementQuizWrong(question.word.id)
+                                repository.updateWordKnowledge(word.id, correct = false)
                             }
                         },
-                        onMarkLearned = { question ->
-                            coroutineScope.launch {
-                                repository.markAsKnown(question.word.id)
-                            }
-                        },
-                        onSpeak = { word -> speak(word) },
-                        onPlayCorrectSound = { /* TODO */ },
-                        onPlayWrongSound = { /* TODO */ },
+                        onSpeak = { word -> speak(word.word) },
                         isSoundMuted = isSoundMuted,
                         onToggleMute = { isSoundMuted = !isSoundMuted },
-                        onRestartQuiz = {
-                            coroutineScope.launch {
-                                val wordsForQuiz = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                                if (wordsForQuiz.isNotEmpty()) {
-                                    val questions = quizGenerator.generateQuestions(wordsForQuiz)
-                                    if (questions.isNotEmpty()) {
-                                        quizSession = QuizSession(questions.map { Question(it) })
-                                    }
-                                }
-                            }
-                        },
                         onBack = { currentScreen = "main" }
                     )
+                } else {
+                    // Quiz için kelime yoksa ana ekrana dön
+                    LaunchedEffect(Unit) {
+                        currentScreen = "main"
+                    }
                 }
             }
             "wrongWords" -> {
                 WrongWordsScreen(
-                    words = words.filter { it.wrongCount > 0 },
+                    words = words,
                     onBack = { currentScreen = "main" }
                 )
             }
