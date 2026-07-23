@@ -162,12 +162,13 @@ class MainActivity : ComponentActivity() {
                     words = words,
                     onUpdateWord = { id, word, meaning, example, level ->
                         coroutineScope.launch {
-                            repository.addWord(Word(word = word, meaning = meaning, example = example, library = selectedLibrary, level = level))
+                            repository.updateWord(id, word, meaning, example, level)
                             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
                     onDeleteWord = { id ->
                         coroutineScope.launch {
+                            repository.deleteWord(id)
                             words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
                         }
                     },
@@ -216,12 +217,13 @@ class MainActivity : ComponentActivity() {
                         memorizationThreshold = 3,
                         onAnswerCorrect = { question ->
                             coroutineScope.launch {
+                                repository.updateQuizCorrectCount(question.word.id)
                                 repository.resetIncorrectCount(question.word.id)
-                                repository.getDailyGoal()
                             }
                         },
                         onAnswerWrong = { question ->
                             coroutineScope.launch {
+                                repository.updateQuizWrongCount(question.word.id)
                                 repository.updateIncorrectCount(question.word.id)
                             }
                         },
