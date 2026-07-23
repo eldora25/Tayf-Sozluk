@@ -6,6 +6,7 @@ import android.util.Log
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.WordRepository
 import org.json.JSONArray
+import java.io.InputStreamReader
 
 /**
  * Dosyalardan kelime içe aktarma yardımcı sınıfı.
@@ -41,7 +42,8 @@ object ExcelImportHelper {
             val inputStream = context.contentResolver.openInputStream(uri)
                 ?: throw Exception("Dosya açılamadı!")
 
-            val content = inputStream.bufferedReader().use { it.readText() }
+            // ✨ DÜZELTİLDİ: UTF-8 karakter kodlaması açıkça belirtildi
+            val content = inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             val lines = content.lines().filter { it.isNotBlank() }
 
             Log.d(TAG, "Dosya okundu: ${lines.size} satır, kütüphane: $libraryName")
