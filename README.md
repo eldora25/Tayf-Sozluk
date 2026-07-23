@@ -14,6 +14,7 @@ Android için basit bir kelime öğrenme ve tekrar uygulaması.
 - GitHub Actions ile APK oluşturma
 
 ## APK Oluşturma
+APK ismini dinamik yap
 
 GitHub reposunda:
 
@@ -28,3 +29,4 @@ word,meaning,example,library,level
 apple,elma,I eat an apple.,İngilizce A1,A1
 book,kitap,This is my book.,İngilizce A1,A1
 Kelime düzenleme özelliği eklendi
+
