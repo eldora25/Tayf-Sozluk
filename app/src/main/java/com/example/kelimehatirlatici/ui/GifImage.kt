@@ -1,48 +1,36 @@
 package com.example.kelimehatirlatici.ui
 
-import android.graphics.drawable.AnimatedImageDrawable
-import android.os.Build
-import android.widget.ImageView
-import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import com.example.kelimehatirlatici.quiz.Question
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+
+/**
+ * GIF animasyonu görüntüleme bileşeni.
+ * Coil kütüphanesi olmadan çalışır.
+ * 
+ * Not: Statik bir resim gösterir. Animasyonlu GIF için
+ * Coil kütüphanesi eklenmesi gerekir.
+ */
 @Composable
 fun GifImage(
-    @DrawableRes gifRes: Int,
-    modifier: Modifier = Modifier,
-    contentDescription: String? = null
+    modifier: Modifier = Modifier
 ) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        AndroidView(
-            factory = { context ->
-                ImageView(context).apply {
-                    scaleType = ImageView.ScaleType.FIT_CENTER
-                    val drawable = context.getDrawable(gifRes)
-                    if (drawable is AnimatedImageDrawable) {
-                        setImageDrawable(drawable)
-                        drawable.start()
-                    } else {
-                        setImageResource(gifRes)
-                    }
-                }
-            },
-            modifier = modifier
-        )
-    } else {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(gifRes)
-                .crossfade(true)
-                .build(),
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = ContentScale.Fit
+    // study_gif.gif varsa onu göster, yoksa placeholder
+    val resId = try {
+        com.example.kelimehatirlatici.R.raw.study_gif
+    } catch (e: Exception) {
+        null
+    }
+    
+    if (resId != null) {
+        Image(
+            painter = painterResource(id = resId),
+            contentDescription = "Çalışma animasyonu",
+            modifier = modifier.size(80.dp)
         )
     }
+    // resim yoksa hiçbir şey gösterme
 }
