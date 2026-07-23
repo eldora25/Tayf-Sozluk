@@ -50,7 +50,7 @@ fun WordEditScreen(
     var examples by remember { mutableStateOf(initialExamples) }
     var selectedLevel by remember { mutableStateOf(word.level) }
     var selectedLibrary by remember { mutableStateOf(word.library) }
-    var selectedAction by remember { mutableStateOf(WordEditAction.UPDATE) }
+    var selectedAction by remember { mutableStateOf(WordEditAction.UPDATE) } // ← Artık WordEditAction enum
     var showNewLibraryDialog by remember { mutableStateOf(false) }
     var targetLibrary by remember { mutableStateOf(word.library) }
     var newLibraryName by remember { mutableStateOf("") }
@@ -199,20 +199,63 @@ fun WordEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // İşlem Türü
+            // İşlem Türü - DOĞRUDAN WordEditAction enum ile
             Text("İşlem Türü", style = MaterialTheme.typography.titleSmall)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                wordEditActions.forEach { action ->
+                // Her bir işlem türü için FilterChip
+                WordEditAction.UPDATE.let { action ->
                     FilterChip(
                         selected = selectedAction == action,
                         onClick = { selectedAction = action },
-                        label = { Text(action.label, style = MaterialTheme.typography.bodySmall) },
+                        label = { Text("Güncelle", style = MaterialTheme.typography.bodySmall) },
                         leadingIcon = {
                             Icon(
-                                imageVector = action.icon,
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    )
+                }
+                WordEditAction.COPY.let { action ->
+                    FilterChip(
+                        selected = selectedAction == action,
+                        onClick = { selectedAction = action },
+                        label = { Text("Kopyala", style = MaterialTheme.typography.bodySmall) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    )
+                }
+                WordEditAction.MOVE.let { action ->
+                    FilterChip(
+                        selected = selectedAction == action,
+                        onClick = { selectedAction = action },
+                        label = { Text("Taşı", style = MaterialTheme.typography.bodySmall) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.DriveFileMove,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    )
+                }
+                WordEditAction.DELETE.let { action ->
+                    FilterChip(
+                        selected = selectedAction == action,
+                        onClick = { selectedAction = action },
+                        label = { Text("Sil", style = MaterialTheme.typography.bodySmall) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -300,17 +343,3 @@ fun WordEditScreen(
         )
     }
 }
-
-// İşlem türü verileri
-private data class WordEditActionData(
-    val action: WordEditAction,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
-private val wordEditActions = listOf(
-    WordEditActionData(WordEditAction.UPDATE, "Güncelle", Icons.Default.Edit),
-    WordEditActionData(WordEditAction.COPY, "Kopyala", Icons.Default.ContentCopy),
-    WordEditActionData(WordEditAction.MOVE, "Taşı", Icons.Default.DriveFileMove),
-    WordEditActionData(WordEditAction.DELETE, "Sil", Icons.Default.Delete)
-)
