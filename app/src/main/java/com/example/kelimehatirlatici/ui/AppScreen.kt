@@ -14,14 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.airbnb.lottie.compose.*
 import com.example.kelimehatirlatici.data.Word
 import org.json.JSONArray
 
@@ -86,17 +84,6 @@ fun AppScreen(
             }
         } ?: emptyList()
     }
-
-    // Lottie animasyonu
-    val compositionResult = rememberLottieComposition(
-        spec = LottieCompositionSpec.RawRes(com.example.kelimehatirlatici.R.raw.study_gif)
-    )
-    val lottieComposition = compositionResult.value
-    val lottieProgress by animateLottieCompositionAsState(
-        composition = lottieComposition,
-        iterations = LottieConstants.IterateForever,
-        isPlaying = !isFlipped
-    )
 
     ModalNavigationDrawer(
         drawerState = rememberDrawerState(DrawerValue.Closed).also {
@@ -427,16 +414,12 @@ fun AppScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Lottie Animasyonu
-                if (lottieComposition != null) {
-                    LottieAnimation(
-                        composition = lottieComposition,
-                        progress = { lottieProgress },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(bottom = 8.dp)
-                    )
-                }
+                // Animasyon yerine emoji (Lottie kaldırıldı)
+                Text(
+                    text = "🐧",
+                    style = MaterialTheme.typography.displaySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
                 // Alt bilgi
                 Row(
