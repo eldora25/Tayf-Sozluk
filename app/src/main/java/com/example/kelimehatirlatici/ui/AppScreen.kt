@@ -429,10 +429,10 @@ fun AppScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "v:1.0.264",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+    text = "v:${BuildConfig.VERSION_NAME}",
+    style = MaterialTheme.typography.bodySmall,
+    color = MaterialTheme.colorScheme.onSurfaceVariant
+)
                     Text(
                         text = "By: Tayfun YAMAK©",
                         style = MaterialTheme.typography.bodySmall,
