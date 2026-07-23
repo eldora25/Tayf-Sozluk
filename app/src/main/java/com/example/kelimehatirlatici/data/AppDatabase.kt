@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase
         DailyGoal::class,
         StudyStats::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,14 +28,15 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "kelime_hatirlatici_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()  // ← EKLENDİ: version değişikliklerinde veritabanını sıfırlar
+                .build()
 
                 INSTANCE = instance
                 instance
             }
         }
 
-        /** Eski isimle uyumluluk (MainActivity için) */
         @JvmStatic
         fun getDatabase(context: Context): AppDatabase = getInstance(context)
     }
