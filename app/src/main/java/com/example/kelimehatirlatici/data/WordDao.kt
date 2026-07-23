@@ -20,26 +20,27 @@ interface WordDao {
     @Query("SELECT DISTINCT level FROM words")
     fun getAllLevels(): List<String>
 
+    @Query("SELECT * FROM daily_goal LIMIT 1")
+    fun getDailyGoal(): DailyGoal?
+
+    @Query("UPDATE daily_goal SET targetCount = :targetCount")
+    fun updateDailyGoal(targetCount: Int)
+
     @Query("SELECT * FROM words WHERE id = :wordId LIMIT 1")
     fun getWordById(wordId: Int): Word?
 
-    // Yanlış sayısını güncelle
     @Query("UPDATE words SET wrongCount = :wrongCount WHERE id = :wordId")
     fun updateIncorrectCount(wordId: Int, wrongCount: Int)
 
-    // Quiz doğru sayısını güncelle
     @Query("UPDATE words SET quizCorrectCount = :quizCorrectCount WHERE id = :wordId")
     fun updateQuizCorrectCount(wordId: Int, quizCorrectCount: Int)
 
-    // Quiz yanlış sayısını güncelle
     @Query("UPDATE words SET quizWrongCount = :quizWrongCount WHERE id = :wordId")
     fun updateQuizWrongCount(wordId: Int, quizWrongCount: Int)
 
-    // Kelimeyi güncelle
     @Query("UPDATE words SET word = :word, meaning = :meaning, example = :example, level = :level WHERE id = :id")
     fun updateWord(id: Int, word: String, meaning: String, example: String, level: String)
 
-    // Kelimeyi sil
     @Query("DELETE FROM words WHERE id = :id")
     fun deleteWord(id: Int)
 }
