@@ -29,7 +29,7 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :wordId LIMIT 1")
     fun getWordById(wordId: Int): Word?
 
-    // ─── EKLENEN METODLAR ───
+    // ═══ EKLENEN METODLAR ═══
     @Query("UPDATE words SET wrongCount = :wrongCount WHERE id = :wordId")
     fun updateIncorrectCount(wordId: Int, wrongCount: Int)
 
