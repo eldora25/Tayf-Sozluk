@@ -18,7 +18,6 @@ class WordRepository(private val wordDao: WordDao) {
         wordDao.addWord(word)
     }
 
-    // ═══ EKLENEN METODLAR ═══
     fun getAllLibraries(): List<String> {
         return wordDao.getAllLibraries()
     }
