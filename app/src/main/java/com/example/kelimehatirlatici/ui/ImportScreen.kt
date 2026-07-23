@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.kelimehatirlatici.WordRepository
 import com.example.kelimehatirlatici.importer.ExcelImportHelper
@@ -36,6 +39,10 @@ fun ImportScreen(
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var suggestedLibraryName by remember { mutableStateOf("") }
     var userLibraryName by remember { mutableStateOf("") }
+
+    // ✨ YENİ: Karakter kodlaması seçimi
+    var selectedCharset by remember { mutableStateOf("UTF-8") }
+    val charsetOptions = listOf("UTF-8", "ISO-8859-9", "Windows-1254")
 
     // Dosya URI'sinden dosya adını çıkaran fonksiyon
     fun getFileName(uri: Uri): String {
@@ -68,6 +75,7 @@ fun ImportScreen(
             selectedFileUri = uri
             suggestedLibraryName = getFileName(uri)
             userLibraryName = suggestedLibraryName
+            selectedCharset = "UTF-8" // Varsayılan UTF-8
             showLibraryNameDialog = true // Kütüphane adı dialogunu aç
         }
     }
@@ -80,7 +88,7 @@ fun ImportScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LibraryBooks, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Kütüphane Adı")
+                    Text("Kütüphane Adı ve Kodlama")
                 }
             },
             text = {
@@ -91,11 +99,13 @@ fun ImportScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Dosya: $suggestedLibraryName",
+                        text = "Dosya: ${suggestedLibraryName}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // Kütüphane adı
                     OutlinedTextField(
                         value = userLibraryName,
                         onValueChange = { userLibraryName = it },
@@ -104,8 +114,53 @@ fun ImportScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
                         text = "Bu isim altında yeni bir kütüphane oluşturulacak.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // ✨ YENİ: Kodlama seçimi
+                    Text(
+                        text = "Dosya Karakter Kodlaması:",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Column(modifier = Modifier.selectableGroup()) {
+                        charsetOptions.forEach { charset ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = (selectedCharset == charset),
+                                        onClick = { selectedCharset = charset },
+                                        role = Role.RadioButton
+                                    )
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = (selectedCharset == charset),
+                                    onClick = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = charset,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Türkçe karakterler bozuk görünüyorsa ISO-8859-9 veya Windows-1254'ü deneyin.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -117,7 +172,7 @@ fun ImportScreen(
                         val finalName = userLibraryName.ifBlank { suggestedLibraryName.ifBlank { "Yeni_Kutuphane" } }
                         showLibraryNameDialog = false
                         isImporting = true
-                        importStatus = "Dosya okunuyor..."
+                        importStatus = "Dosya okunuyor (${selectedCharset})..."
                         importedCount = 0
                         skippedCount = 0
 
@@ -127,7 +182,8 @@ fun ImportScreen(
                                     context = context,
                                     repository = repository,
                                     uri = uri,
-                                    libraryName = finalName
+                                    libraryName = finalName,
+                                    charsetName = selectedCharset // ✨ Kodlama parametresi
                                 )
                                 importedCount = result.first
                                 skippedCount = result.second
@@ -191,7 +247,7 @@ fun ImportScreen(
                     FormatInfoRow(
                         icon = Icons.Default.Description,
                         format = "CSV",
-                        details = "word,meaning1\\|\\|\\|meaning2...,example,level,library"
+                        details = "word,meaning1|||meaning2...,example,level,library"
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     FormatInfoRow(
@@ -203,7 +259,7 @@ fun ImportScreen(
                     FormatInfoRow(
                         icon = Icons.Default.Code,
                         format = "TXT (FreeDict)",
-                        details = "word=meaning1\\|\\|\\|meaning2..."
+                        details = "word=meaning1|||meaning2..."
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     FormatInfoRow(
@@ -244,7 +300,7 @@ fun ImportScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Kelimeler işleniyor...",
+                    text = "Kelimeler işleniyor (${selectedCharset})...",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
