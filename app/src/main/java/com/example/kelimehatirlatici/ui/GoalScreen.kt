@@ -44,22 +44,38 @@ fun GoalScreen(
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress gösterimi
+            val progress = if (currentGoal > 0) completed.toFloat() / currentGoal else 0f
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .height(12.dp),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "$completed / $currentGoal",
                 style = MaterialTheme.typography.displayMedium
             )
-            Spacer(modifier = Modifier.height(24.dp))
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
                 value = targetCount,
                 onValueChange = { targetCount = it },
-                label = { Text("Günlük Hedef") }
+                label = { Text("Yeni Günlük Hedef") },
+                singleLine = true
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
                     val target = targetCount.toIntOrNull() ?: 10
-                    onSaveGoal(target)
+                    if (target > 0) {
+                        onSaveGoal(target)
+                    }
                 }
             ) {
                 Text("Kaydet")
