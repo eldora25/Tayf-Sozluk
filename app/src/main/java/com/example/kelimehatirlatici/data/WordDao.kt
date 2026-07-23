@@ -20,12 +20,6 @@ interface WordDao {
     @Query("SELECT DISTINCT level FROM words")
     fun getAllLevels(): List<String>
 
-    @Query("SELECT * FROM daily_goal LIMIT 1")
-    fun getDailyGoal(): DailyGoal?
-
-    @Query("UPDATE daily_goal SET targetCount = :targetCount")
-    fun updateDailyGoal(targetCount: Int)
-
     @Query("SELECT * FROM words WHERE id = :wordId LIMIT 1")
     fun getWordById(wordId: Int): Word?
 
