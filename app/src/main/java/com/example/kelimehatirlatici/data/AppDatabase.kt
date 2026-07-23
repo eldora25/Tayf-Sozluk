@@ -27,7 +27,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "kelime_hatirlatici_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()  // ← KRİTİK: Eski veritabanını silip yeniden oluşturur
+                .build()
 
                 INSTANCE = instance
                 instance
