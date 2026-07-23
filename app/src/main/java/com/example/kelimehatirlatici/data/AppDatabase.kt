@@ -8,10 +8,9 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         Word::class,
-        DailyGoal::class,
         StudyStats::class
     ],
-    version = 2,
+    version = 1,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,9 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "kelime_hatirlatici_database"
-                )
-                .fallbackToDestructiveMigration()  // ← EKLENDİ: version değişikliklerinde veritabanını sıfırlar
-                .build()
+                ).build()
 
                 INSTANCE = instance
                 instance
