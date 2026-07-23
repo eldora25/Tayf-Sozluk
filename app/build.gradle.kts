@@ -14,7 +14,7 @@ android {
         minSdk = 24
         targetSdk = 35
         
-        val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 264
+        val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 384
         versionCode = buildNumber
         versionName = "1.0.$buildNumber"
 
@@ -74,7 +74,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
     
-    // ✨ YENİ: DataStore - Dark mode tercihi için
+    // DataStore - Dark mode tercihi için
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     
     testImplementation("junit:junit:4.13.2")
