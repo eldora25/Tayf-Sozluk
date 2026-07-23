@@ -6,7 +6,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Açık renk şeması (Light Theme)
+// Açık renk şeması
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF1976D2),
     onPrimary = Color.White,
@@ -28,7 +28,7 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
-// Koyu renk şeması (Dark Theme)
+// Koyu renk şeması
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF90CAF9),
     onPrimary = Color(0xFF003258),
