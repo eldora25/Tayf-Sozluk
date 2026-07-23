@@ -22,7 +22,8 @@ import com.example.kelimehatirlatici.importer.ExcelImportHelper
 @Composable
 fun ImportScreen(
     repository: WordRepository,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onImportComplete: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var importStatus by remember { mutableStateOf("") }
@@ -30,27 +31,125 @@ fun ImportScreen(
     var importedCount by remember { mutableIntStateOf(0) }
     var skippedCount by remember { mutableIntStateOf(0) }
 
-    // Dosya seçme launcher - tüm metin dosyaları
+    // Kütüphane adı dialog durumu
+    var showLibraryNameDialog by remember { mutableStateOf(false) }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+    var suggestedLibraryName by remember { mutableStateOf("") }
+    var userLibraryName by remember { mutableStateOf("") }
+
+    // Dosya URI'sinden dosya adını çıkaran fonksiyon
+    fun getFileName(uri: Uri): String {
+        var name = "Yeni_Kutuphane"
+        try {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) {
+                        name = it.getString(nameIndex) ?: "Yeni_Kutuphane"
+                        // Uzantıyı kaldır
+                        if (name.contains(".")) {
+                            name = name.substringBeforeLast(".")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Import", "Dosya adı alınamadı", e)
+        }
+        return name
+    }
+
+    // Dosya seçme launcher
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            isImporting = true
-            importStatus = "Dosya okunuyor..."
-            importedCount = 0
-            skippedCount = 0
-
-            try {
-                val result = ExcelImportHelper.importFile(context, repository, uri)
-                importedCount = result.first
-                skippedCount = result.second
-                importStatus = "✅ İşlem tamamlandı: $importedCount kelime eklendi, $skippedCount atlandı"
-            } catch (e: Exception) {
-                Log.e("Import", "Hata: ${e.message}", e)
-                importStatus = "❌ Hata: ${e.message}"
-            }
-            isImporting = false
+            selectedFileUri = uri
+            suggestedLibraryName = getFileName(uri)
+            userLibraryName = suggestedLibraryName
+            showLibraryNameDialog = true // Kütüphane adı dialogunu aç
         }
+    }
+
+    // Kütüphane adı dialogu
+    if (showLibraryNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showLibraryNameDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LibraryBooks, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Kütüphane Adı")
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Seçtiğiniz dosyadan alınan kütüphane adı:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Dosya: $suggestedLibraryName",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = userLibraryName,
+                        onValueChange = { userLibraryName = it },
+                        label = { Text("Kütüphane Adı") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Bu isim altında yeni bir kütüphane oluşturulacak.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val finalName = userLibraryName.ifBlank { suggestedLibraryName.ifBlank { "Yeni_Kutuphane" } }
+                        showLibraryNameDialog = false
+                        isImporting = true
+                        importStatus = "Dosya okunuyor..."
+                        importedCount = 0
+                        skippedCount = 0
+
+                        selectedFileUri?.let { uri ->
+                            try {
+                                val result = ExcelImportHelper.importFile(
+                                    context = context,
+                                    repository = repository,
+                                    uri = uri,
+                                    libraryName = finalName
+                                )
+                                importedCount = result.first
+                                skippedCount = result.second
+                                importStatus = "✅ İşlem tamamlandı: $importedCount kelime eklendi, $skippedCount atlandı (Kütüphane: $finalName)"
+                            } catch (e: Exception) {
+                                Log.e("Import", "Hata: ${e.message}", e)
+                                importStatus = "❌ Hata: ${e.message}"
+                            }
+                        }
+                        isImporting = false
+                    },
+                    enabled = userLibraryName.isNotBlank()
+                ) {
+                    Text("İçe Aktar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLibraryNameDialog = false }) {
+                    Text("İptal")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -92,7 +191,7 @@ fun ImportScreen(
                     FormatInfoRow(
                         icon = Icons.Default.Description,
                         format = "CSV",
-                        details = "word,meaning1|||meaning2|||...,example,level,library"
+                        details = "word,meaning1\\|\\|\\|meaning2...,example,level,library"
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     FormatInfoRow(
@@ -104,19 +203,13 @@ fun ImportScreen(
                     FormatInfoRow(
                         icon = Icons.Default.Code,
                         format = "TXT (FreeDict)",
-                        details = "word=meaning1|||meaning2|||..."
+                        details = "word=meaning1\\|\\|\\|meaning2..."
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     FormatInfoRow(
                         icon = Icons.Default.DataObject,
-                        format = "JSON (her satırda bir nesne)",
+                        format = "JSON (Tek satırda bir nesne)",
                         details = "{\"word\":\"...\",\"meanings\":[\"...\"]}"
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    FormatInfoRow(
-                        icon = Icons.Default.TableChart,
-                        format = "Excel",
-                        details = "İlk sayfa, ilk 5 sütun (word,meaning,example,level,library)"
                     )
                 }
             }
@@ -180,7 +273,10 @@ fun ImportScreen(
             if (importedCount > 0 && !isImporting) {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
-                    onClick = onBack,
+                    onClick = {
+                        onImportComplete()
+                        onBack()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.ArrowBack, contentDescription = null)
