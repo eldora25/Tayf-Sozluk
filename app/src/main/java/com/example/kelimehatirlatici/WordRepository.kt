@@ -1,5 +1,6 @@
 package com.example.kelimehatirlatici
 
+import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.data.WordDao
 
@@ -23,6 +24,14 @@ class WordRepository(private val wordDao: WordDao) {
 
     fun getAllLevels(): List<String> {
         return wordDao.getAllLevels()
+    }
+
+    fun getDailyGoal(): DailyGoal? {
+        return wordDao.getDailyGoal()
+    }
+
+    fun updateDailyGoal(targetCount: Int) {
+        wordDao.updateDailyGoal(targetCount)
     }
 
     fun getWordById(wordId: Int): Word? {
