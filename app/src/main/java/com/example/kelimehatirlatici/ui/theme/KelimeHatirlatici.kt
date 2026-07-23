@@ -50,16 +50,12 @@ private val DarkColorScheme = darkColorScheme(
     onError = Color(0xFF601410)
 )
 
-/**
- * Uygulama teması - Dark mode tercihine göre otomatik ayarlanır
- */
 @Composable
 fun KelimeHatirlaticiTheme(
     darkTheme: Boolean,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
