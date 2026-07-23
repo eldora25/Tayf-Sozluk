@@ -1,6 +1,7 @@
 package com.example.kelimehatirlatici.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kelimehatirlatici.R
 import com.example.kelimehatirlatici.data.DailyGoal
 import com.example.kelimehatirlatici.data.Word
 
@@ -73,7 +76,6 @@ fun LearningCardScreen(
     var isFlipped by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
-    // ★ Düzeltme: density'i LocalDensity ile al - build hatasını çözer
     val density = LocalDensity.current.density
 
     val flipRotation = animateFloatAsState(
@@ -158,10 +160,10 @@ fun LearningCardScreen(
                     .height(300.dp)
                     .graphicsLayer(
                         rotationY = flipRotation.value,
-                        cameraDistance = 8f * density   // ★ LocalDensity'den alındı
+                        cameraDistance = 8f * density
                     ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                onClick = { isFlipped = !isFlipped }   // ★ Tıklanabilir - kart çevirme
+                onClick = { isFlipped = !isFlipped }
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -175,7 +177,7 @@ fun LearningCardScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             if (word != null) {
-                                // ★ KELİME (büyük puntoda)
+                                // KELİME (büyük puntoda)
                                 Text(
                                     text = word.word,
                                     fontSize = 36.sp,
@@ -186,7 +188,7 @@ fun LearningCardScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // ★ TTS BUTONU - kelimeyi okur
+                                // TTS BUTONU - kelimeyi okur
                                 OutlinedButton(
                                     onClick = { onSpeakClick(word.word) }
                                 ) {
@@ -226,7 +228,7 @@ fun LearningCardScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (word != null) {
-                                // ★ Çoklu anlamları alt alta • ile göster
+                                // Çoklu anlamları alt alta • ile göster
                                 Text(
                                     text = formatMultiMeanings(word.meaning),
                                     fontSize = 20.sp,
@@ -235,7 +237,7 @@ fun LearningCardScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
 
-                                // ★ Çoklu örnekleri alt alta • ile göster
+                                // Çoklu örnekleri alt alta • ile göster
                                 if (word.example.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(16.dp))
                                     HorizontalDivider()
@@ -276,19 +278,16 @@ fun LearningCardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Konuşma butonu (tekil)
                     OutlinedButton(
                         onClick = { onSpeakClick(word.word) },
                         modifier = Modifier.weight(1f)
                     ) { Text("🔊") }
 
-                    // Bilmiyorum
                     OutlinedButton(
                         onClick = { isFlipped = true },
                         modifier = Modifier.weight(1f)
                     ) { Text("❓ Bilmiyorum") }
 
-                    // Yanlış
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -300,7 +299,6 @@ fun LearningCardScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                     ) { Text("❌ Yanlış") }
 
-                    // Biliyorum
                     Button(
                         onClick = {
                             if (isFlipped) {
@@ -315,6 +313,18 @@ fun LearningCardScreen(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // ★ ALTTA SÜREKLİ study_gif.gif ANİMASYONU
+            if (word != null) {
+                Image(
+                    painter = painterResource(id = R.raw.study_gif),
+                    contentDescription = "Öğrenme animasyonu",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
             if (word != null && !isFlipped) {
                 Text(
