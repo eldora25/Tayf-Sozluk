@@ -19,6 +19,9 @@ android {
         versionName = "1.0.$buildNumber"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // APK çıktı adı için arkiveBaseName
+        archivesBaseName = "KelimeHatirlatici-V${versionName}"
     }
 
     buildTypes {
@@ -44,6 +47,17 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+
+    // APK dosya adını özelleştir
+    android.applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val buildTypeName = variant.buildType.name
+            val version = variant.versionName
+            output.outputFileName = "KelimeHatirlatici-V${version}-${buildTypeName}.apk"
         }
     }
 }
