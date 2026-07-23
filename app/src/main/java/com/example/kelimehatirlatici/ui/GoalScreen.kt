@@ -1,76 +1,68 @@
 package com.example.kelimehatirlatici.ui
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalScreen(
-    currentGoal: Int,
-    completed: Int,
+    currentGoal: Int = 10,
+    completed: Int = 0,
     onSaveGoal: (Int) -> Unit,
     onBack: () -> Unit
 ) {
-    var goalText by remember(currentGoal) {
-        mutableStateOf(currentGoal.toString())
-    }
+    var targetCount by remember { mutableStateOf(currentGoal.toString()) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Günlük Hedef")
+                title = { Text("Günlük Hedef") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                    }
                 }
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Bugün tamamlanan: $completed",
-                style = MaterialTheme.typography.titleMedium
+                text = "Bugünkü İlerleme",
+                style = MaterialTheme.typography.titleLarge
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = goalText,
-                onValueChange = {
-                    goalText = it.filter { char -> char.isDigit() }
-                },
-                label = {
-                    Text("Günlük kelime hedefi")
-                },
-                modifier = Modifier.fillMaxWidth()
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "$completed / $currentGoal",
+                style = MaterialTheme.typography.displayMedium
             )
-
             Spacer(modifier = Modifier.height(24.dp))
 
+            OutlinedTextField(
+                value = targetCount,
+                onValueChange = { targetCount = it },
+                label = { Text("Günlük Hedef") }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val value = goalText.toIntOrNull() ?: currentGoal
-                    onSaveGoal(value.coerceAtLeast(1))
-                },
-                modifier = Modifier.fillMaxWidth()
+                    val target = targetCount.toIntOrNull() ?: 10
+                    onSaveGoal(target)
+                }
             ) {
                 Text("Kaydet")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Geri")
             }
         }
     }
