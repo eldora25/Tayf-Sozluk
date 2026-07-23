@@ -100,13 +100,6 @@ private fun MainApp(
     var currentWord by remember { mutableStateOf<Word?>(null) }
     var showMeanings by remember { mutableStateOf(false) }
 
-    val levels = remember {
-        listOf(
-            "A1 - Başlangıç", "A2 - Temel", "B1 - Orta",
-            "B2 - Orta-Üst", "C1 - İleri", "C2 - Uzman", "Genel"
-        )
-    }
-
     // Verileri yükle
     LaunchedEffect(currentScreen) {
         if (currentScreen == "main" || currentScreen == "library") {
@@ -162,7 +155,7 @@ private fun MainApp(
                     "Kelime Listesi" to Icons.Default.List,
                     "Kütüphane Seç" to Icons.Default.LibraryBooks,
                     "Seviye Seç" to Icons.Default.Speed,
-                    "Günlük Hedef" to Icons.Default.Target,
+                    "Günlük Hedef" to Icons.Default.TrackChanges,
                     "İstatistikler" to Icons.Default.BarChart,
                     "Quiz" to Icons.Default.Quiz,
                     "İçe Aktar" to Icons.Default.FileUpload,
@@ -214,113 +207,63 @@ private fun MainApp(
         },
         content = {
             when (currentScreen) {
-                "main" -> {
-                    MainContent(
-                        repository = repository,
-                        words = words,
-                        currentWord = currentWord,
-                        currentWordIndex = currentWordIndex,
-                        showMeanings = showMeanings,
-                        selectedLibrary = selectedLibrary,
-                        selectedLevel = selectedLevel,
-                        onDrawerOpen = { coroutineScope.launch { drawerState.open() } },
-                        onWordChange = { index, word ->
-                            currentWordIndex = index
-                            currentWord = word
-                        },
-                        onToggleMeanings = { showMeanings = !showMeanings },
-                        onScreenChange = { currentScreen = it }
-                    )
-                }
+                "main" -> MainContent(
+                    words = words,
+                    currentWord = currentWord,
+                    currentWordIndex = currentWordIndex,
+                    showMeanings = showMeanings,
+                    selectedLibrary = selectedLibrary,
+                    selectedLevel = selectedLevel,
+                    onDrawerOpen = { coroutineScope.launch { drawerState.open() } },
+                    onWordChange = { index, word ->
+                        currentWordIndex = index
+                        currentWord = word
+                    },
+                    onToggleMeanings = { showMeanings = !showMeanings },
+                    onScreenChange = { currentScreen = it }
+                )
 
-                "library" -> {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = { Text("Kütüphaneler") },
-                                navigationIcon = {
-                                    IconButton(onClick = { currentScreen = "main" }) {
-                                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
-                                    }
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                                )
+                "library" -> LibrariesScreen(
+                    libraries = libraries,
+                    repository = repository,
+                    onLibrarySelect = { lib ->
+                        selectedLibrary = lib
+                        currentWord = null
+                        currentWordIndex = 0
+                        currentScreen = "main"
+                    },
+                    onBack = { currentScreen = "main" }
+                )
+
+                "import" -> ImportScreen(
+                    repository = repository,
+                    onBack = { currentScreen = "main" },
+                    onImportComplete = {
+                        scope.launch {
+                            words = repository.getWordsByLibraryAndLevel(
+                                if (selectedLibrary == "Tümü") "" else selectedLibrary,
+                                if (selectedLevel == "Tümü") "" else selectedLevel
                             )
-                        }
-                    ) { paddingValues ->
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)
-                        ) {
-                            items(libraries) { library ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    onClick = {
-                                        selectedLibrary = library
-                                        currentWord = null
-                                        currentWordIndex = 0
-                                        currentScreen = "main"
-                                    }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Icons.Default.LibraryBooks, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(text = library, style = MaterialTheme.typography.bodyLarge)
-                                            Text(
-                                                text = "${repository.getWordCountByLibrary(library)} kelime",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
+                            libraries = repository.getAllLibraries()
+                            if (words.isNotEmpty()) {
+                                currentWord = words.first()
+                                currentWordIndex = 0
                             }
                         }
                     }
-                }
+                )
 
-                "import" -> {
-                    ImportScreen(
-                        repository = repository,
-                        onBack = { currentScreen = "main" },
-                        onImportComplete = {
-                            scope.launch {
-                                words = repository.getWordsByLibraryAndLevel(
-                                    if (selectedLibrary == "Tümü") "" else selectedLibrary,
-                                    if (selectedLevel == "Tümü") "" else selectedLevel
-                                )
-                                libraries = repository.getAllLibraries()
-                                if (words.isNotEmpty()) {
-                                    currentWord = words.first()
-                                    currentWordIndex = 0
-                                }
-                            }
-                        }
-                    )
-                }
+                "packages" -> PackagesScreen(
+                    repository = repository,
+                    onBack = { currentScreen = "main" }
+                )
 
-                "packages" -> {
-                    PackagesScreen(
-                        repository = repository,
-                        onBack = { currentScreen = "main" }
-                    )
-                }
-
-                "settings" -> {
-                    SettingsScreen(
-                        isDarkMode = isDarkMode,
-                        onToggleDarkMode = { onToggleDarkMode(it) },
-                        onBack = { currentScreen = "main" },
-                        onSave = { currentScreen = "main" }
-                    )
-                }
+                "settings" -> SettingsScreen(
+                    isDarkMode = isDarkMode,
+                    onToggleDarkMode = { onToggleDarkMode(it) },
+                    onBack = { currentScreen = "main" },
+                    onSave = { currentScreen = "main" }
+                )
             }
         }
     )
@@ -329,7 +272,6 @@ private fun MainApp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainContent(
-    repository: WordRepository,
     words: List<Word>,
     currentWord: Word?,
     currentWordIndex: Int,
@@ -408,7 +350,6 @@ private fun MainContent(
                     }
                 }
             } else {
-                // Kelime sayısı
                 Text(
                     text = "Toplam: ${words.size} kelime",
                     style = MaterialTheme.typography.bodySmall,
@@ -416,7 +357,6 @@ private fun MainContent(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Kelime kartı
                 currentWord?.let { word ->
                     Card(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -440,13 +380,17 @@ private fun MainContent(
                                 HorizontalDivider()
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Çoklu anlamları göster
-                                val meaningsList = try {
-                                    JSONArray(word.meanings).let { arr ->
-                                        (0 until arr.length()).map { arr.getString(it) }
+                                // Çoklu anlamları göster (||| ile ayrılmış)
+                                val meaningsList = if (word.meanings.contains("|||")) {
+                                    word.meanings.split("|||")
+                                } else {
+                                    try {
+                                        JSONArray(word.meanings).let { arr ->
+                                            (0 until arr.length()).map { arr.getString(it) }
+                                        }
+                                    } catch (_: Exception) {
+                                        listOf(word.meaning)
                                     }
-                                } catch (e: Exception) {
-                                    listOf(word.meaning)
                                 }
 
                                 Text(
@@ -466,13 +410,17 @@ private fun MainContent(
                                 }
 
                                 // Çoklu örnek cümleleri göster
-                                if (word.examples.isNotBlank()) {
-                                    val examplesList = try {
-                                        JSONArray(word.examples).let { arr ->
-                                            (0 until arr.length()).map { arr.getString(it) }
+                                if (word.example.isNotBlank()) {
+                                    val examplesList = if (word.example.contains("|||")) {
+                                        word.example.split("|||")
+                                    } else {
+                                        try {
+                                            JSONArray(word.examples).let { arr ->
+                                                (0 until arr.length()).map { arr.getString(it) }
+                                            }
+                                        } catch (_: Exception) {
+                                            listOf(word.example)
                                         }
-                                    } catch (e: Exception) {
-                                        if (word.example.isNotBlank()) listOf(word.example) else emptyList()
                                     }
 
                                     if (examplesList.isNotEmpty()) {
@@ -485,14 +433,17 @@ private fun MainContent(
                                             color = MaterialTheme.colorScheme.tertiary
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        examplesList.forEachIndexed { index, example ->
-                                            Text(
-                                                text = "${index + 1}. $example",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                textAlign = TextAlign.Center,
-                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                                modifier = Modifier.padding(vertical = 2.dp)
-                                            )
+                                        examplesList.forEachIndexed { index, ex ->
+                                            val cleanEx = ex.trim().removePrefix("[").removeSuffix("]")
+                                            if (cleanEx.isNotBlank()) {
+                                                Text(
+                                                    text = "${index + 1}. $cleanEx",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    textAlign = TextAlign.Center,
+                                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                    modifier = Modifier.padding(vertical = 2.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -505,7 +456,6 @@ private fun MainContent(
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -612,6 +562,61 @@ private fun MainContent(
                             }
                         }
                     )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LibrariesScreen(
+    libraries: List<String>,
+    repository: WordRepository,
+    onLibrarySelect: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Kütüphaneler") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)
+        ) {
+            items(libraries) { library ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    onClick = { onLibrarySelect(library) }
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.LibraryBooks, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = library, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = "${repository.getWordCountByLibrary(library)} kelime",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
