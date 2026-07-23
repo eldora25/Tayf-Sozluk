@@ -1,6 +1,7 @@
 package com.example.kelimehatirlatici.quiz
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kelimehatirlatici.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -59,7 +62,7 @@ fun QuizScreen(
     var wrongCount by remember { mutableIntStateOf(0) }
     var quizFinished by remember { mutableStateOf(false) }
 
-    // Animasyon durumları (GIF yerine emoji)
+    // Animasyon durumları
     var showCorrectAnimation by remember { mutableStateOf(false) }
     var showWrongAnimation by remember { mutableStateOf(false) }
 
@@ -124,7 +127,7 @@ fun QuizScreen(
                 .padding(padding)
         ) {
             if (quizFinished) {
-                // ═══ QUIZ BİTTİ EKRANI - Emoji ile ═══
+                // ═══ QUIZ BİTTİ EKRANI - Animasyonlu GIF (congrats.gif) ═══
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -135,17 +138,30 @@ fun QuizScreen(
                     val totalQuestions = correctCount + wrongCount
                     val pct = if (totalQuestions > 0) (correctCount * 100 / totalQuestions) else 0
 
-                    // GIF yerine emoji
-                    Text(
-                        if (pct >= 70) "🏆" else "💪",
-                        fontSize = 80.sp,
-                        textAlign = TextAlign.Center
-                    )
+                    // ★ congrats.gif - başarılı animasyon
+                    if (pct >= 70) {
+                        Image(
+                            painter = painterResource(id = R.raw.congrats),
+                            contentDescription = "Tebrikler!",
+                            modifier = Modifier.size(150.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("🎉 Muhteşem!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
+                    } else {
+                        // Tekrar dene - error.gif kullan (hata animasyonu)
+                        Image(
+                            painter = painterResource(id = R.raw.error),
+                            contentDescription = "Tekrar Dene",
+                            modifier = Modifier.size(150.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("💪 Tekrar Dene!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF9800))
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        "🎉 Quiz Tamamlandı!",
+                        "Quiz Tamamlandı!",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -279,7 +295,7 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // KELİME KARTI - Kelime üstte, TTS butonu
+                    // KELİME KARTI
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -346,7 +362,7 @@ fun QuizScreen(
                                     showAnswer = true
 
                                     if (isCorrect == true) {
-                                        // DOĞRU - animasyon göster, 1 sn sonra geç
+                                        // ★ DOĞRU ANİMASYONU - success.gif
                                         showCorrectAnimation = true
                                         onPlayCorrectSound()
                                         onAnswerCorrect(question)
@@ -356,7 +372,7 @@ fun QuizScreen(
                                         }
 
                                         coroutineScope.launch {
-                                            delay(1000)
+                                            delay(1500)
                                             showCorrectAnimation = false
                                             correctCount++
                                             val nextIndex = currentIndex + 1
@@ -375,7 +391,7 @@ fun QuizScreen(
                                             }
                                         }
                                     } else {
-                                        // YANLIŞ - animasyon göster, 2 sn sonra geç
+                                        // ★ YANLIŞ ANİMASYONU - error.gif
                                         showWrongAnimation = true
                                         onPlayWrongSound()
                                         onAnswerWrong(question)
@@ -413,21 +429,34 @@ fun QuizScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // ANİMASYON GÖSTERİMİ (GIF yerine emoji)
+                    // ★ ANİMASYON GÖSTERİMİ
                     if (showCorrectAnimation) {
+                        // success.gif - doğru animasyonu
+                        Image(
+                            painter = painterResource(id = R.raw.success),
+                            contentDescription = "Doğru!",
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "✅ Doğru! 🎉",
-                            fontSize = 28.sp,
+                            "✅ Doğru!",
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50),
-                            textAlign = TextAlign.Center
+                            color = Color(0xFF4CAF50)
                         )
                     }
 
                     if (showWrongAnimation) {
+                        // error.gif - yanlış animasyonu
+                        Image(
+                            painter = painterResource(id = R.raw.error),
+                            contentDescription = "Yanlış!",
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "❌ Yanlış!\nDoğru cevap: ${question.correctAnswer}",
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFD32F2F),
                             textAlign = TextAlign.Center
