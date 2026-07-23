@@ -1,23 +1,12 @@
 package com.example.kelimehatirlatici
 
-import androidx.lifecycle.LiveData
 import com.example.kelimehatirlatici.data.Word
 import com.example.kelimehatirlatici.data.WordDao
 
 class WordRepository(private val wordDao: WordDao) {
 
-    val allWords: LiveData<List<Word>> = wordDao.getAllWords()
-
     suspend fun addWord(word: Word) {
-        // Aynı kelimeyi ve anlamı kontrol et
-        val existingWords = wordDao.getWordByName(word.word)
-        val exists = existingWords.any {
-            it.word == word.word && it.meaning == word.meaning &&
-            it.library == word.library
-        }
-        if (!exists) {
-            wordDao.insert(word)
-        }
+        wordDao.insert(word)
     }
 
     suspend fun deleteWord(word: Word) {
@@ -30,7 +19,7 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun getWordsByLibraryAndLevel(library: String, level: String): List<Word> {
         return if (library.isBlank() && level.isBlank()) {
-            wordDao.getAllWordsSync()
+            wordDao.getAllWords()
         } else if (library.isBlank()) {
             wordDao.getWordsByLevel(level)
         } else if (level.isBlank()) {
@@ -42,10 +31,6 @@ class WordRepository(private val wordDao: WordDao) {
 
     suspend fun getAllLibraries(): List<String> {
         return wordDao.getAllLibraries()
-    }
-
-    suspend fun searchWords(query: String): List<Word> {
-        return wordDao.searchWords("%$query%")
     }
 
     fun getWordCountByLibrary(library: String): Int {
