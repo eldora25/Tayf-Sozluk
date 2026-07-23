@@ -299,18 +299,23 @@ class MainActivity : ComponentActivity() {
                 )
             }
             "import" -> {
-                ImportScreen(
-                    repository = repository,
-                    onBack = {
-                        currentScreen = "main"
-                        // Import sonrası verileri yenile
-                        coroutineScope.launch {
-                            words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
-                            libraries = repository.getAllLibraries()
-                        }
-                    }
-                )
+    ImportScreen(
+        repository = repository,
+        onBack = {
+            currentScreen = "main"
+        },
+        onImportComplete = {
+            coroutineScope.launch {
+                words = repository.getWordsByLibraryAndLevel(selectedLibrary, selectedLevel)
+                libraries = repository.getAllLibraries()
+                if (words.isNotEmpty()) {
+                    currentWord = words.first()
+                    currentWordIndex = 0
+                }
             }
+        }
+    )
+}
             "quiz" -> {
                 quizSession?.let { session ->
                     QuizScreen(
