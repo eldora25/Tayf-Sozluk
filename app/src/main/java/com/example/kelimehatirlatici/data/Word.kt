@@ -11,9 +11,7 @@ data class Word(
     val example: String = "",
     val library: String = "Genel",
     val level: String = "Genel",
-    val isLearned: Boolean = false,
-    val repeatCount: Int = 0,
     val wrongCount: Int = 0,
     val quizCorrectCount: Int = 0,
-    val lastReviewedAt: Long = 0L
+    val quizWrongCount: Int = 0
 )
