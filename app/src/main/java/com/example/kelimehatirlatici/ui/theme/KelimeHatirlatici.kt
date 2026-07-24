@@ -6,7 +6,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Açık renk şeması
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF1976D2),
     onPrimary = Color.White,
@@ -28,7 +27,6 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
-// Koyu renk şeması
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF90CAF9),
     onPrimary = Color(0xFF003258),
@@ -51,14 +49,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun KelimeHatirlaticiTheme(
-    darkTheme: Boolean,
-    content: @Composable () -> Unit
-) {
+fun KelimeHatirlaticiTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
