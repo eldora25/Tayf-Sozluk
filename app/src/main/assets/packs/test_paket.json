@@ -6,93 +6,28 @@
     "words": [
         {
             "word": "word",
-            "meanings": ["söz, sözcük, kelime", "lafız", "vaad, söz", "haber, malumat", "parola", "emir, işaret, kumanda"],
-            "examples": ["Words fail me. Sözle tarif edemem.", "word for word kelimesi kelimesine", "word game kelime oyunu", "word of honor namus sözü", "word order sözdizimi"]
+            "meanings": ["söz, sözcük, kelime", "lafız", "vaad, söz", "haber, malumat"],
+            "examples": ["Words fail me. Sözle tarif edemem.", "word for word kelimesi kelimesine", "word game kelime oyunu"]
         },
         {
             "word": "book",
-            "meanings": ["kitap", "defter", "bir şeyi kaydetmek, rezervasyon yapmak", "ayırmak"],
-            "examples": ["I read a good book. İyi bir kitap okudum.", "The book is on the table. Kitap masanın üstünde.", "I booked a hotel room. Bir otel odası ayırttım.", "bookworm kitap kurdu"]
+            "meanings": ["kitap", "defter", "rezervasyon yapmak", "ayırmak"],
+            "examples": ["I read a good book. İyi bir kitap okudum.", "I booked a hotel room. Bir otel odası ayırttım."]
         },
         {
             "word": "mean",
-            "meanings": ["anlamına gelmek, demek istemek", "niyet etmek, kastetmek", "ortalama, vasat", "cimri, pinti"],
-            "examples": ["What do you mean? Ne demek istiyorsun?", "He means well. İyi niyetli.", "mean distance ortalama mesafe", "meanness adilik, cimrilik"]
+            "meanings": ["anlamına gelmek", "kastetmek", "ortalama", "cimri"],
+            "examples": ["What do you mean? Ne demek istiyorsun?", "mean distance ortalama mesafe"]
         },
         {
             "word": "light",
-            "meanings": ["ışık, aydınlık", "hafif", "açık renkli", "yakmak, ışık vermek"],
-            "examples": ["The light is bright. Işık parlak.", "This bag is light. Bu çanta hafif.", "light blue açık mavi", "light the candle mumu yak"]
+            "meanings": ["ışık, aydınlık", "hafif", "açık renkli", "yakmak"],
+            "examples": ["The light is bright. Işık parlak.", "This bag is light. Bu çanta hafif.", "light blue açık mavi"]
         },
         {
             "word": "run",
-            "meanings": ["koşmak", "işletmek, yönetmek", "çalışmak (makine)", "kaçmak", "akmak (su)"],
-            "examples": ["He runs fast. Hızlı koşar.", "She runs a company. Bir şirket yönetiyor.", "The engine is running. Motor çalışıyor.", "run away kaçmak"]
-        },
-        {
-            "word": "take",
-            "meanings": ["almak", "götürmek", "içmek (ilaç)", "sürmek (zaman)", "anlamak, yorumlamak"],
-            "examples": ["Take this book. Bu kitabı al.", "Take me home. Beni eve götür.", "Take this medicine. Bu ilacı iç.", "It takes time. Zaman alır."]
-        },
-        {
-            "word": "get",
-            "meanings": ["almak, edinmek", "ulaşmak, varmak", "anlamak", "olmak (sıfatla)", "getirmek"],
-            "examples": ["I got a present. Bir hediye aldım.", "Get to the station. İstasyona var.", "I don't get it. Anlamadım.", "get angry sinirlenmek"]
-        },
-        {
-            "word": "set",
-            "meanings": ["kurmak, yerleştirmek", "ayarlamak", "batmak (güneş)", "takım, set", "belirlemek"],
-            "examples": ["Set the table. Masayı kur.", "Set the alarm. Alarmı kur.", "The sun sets. Güneş batıyor.", "a set of tools bir takım alet"]
-        },
-        {
-            "word": "make",
-            "meanings": ["yapmak", "etmek, sebep olmak", "üretmek, imal etmek", "zorlamak", "başarmak, varmak"],
-            "examples": ["Make a cake. Pasta yap.", "Make me happy. Beni mutlu et.", "Made in Turkey. Türkiye'de üretilmiştir.", "Make him work. Onu çalıştır."]
-        },
-        {
-            "word": "work",
-            "meanings": ["iş, çalışma", "çalışmak", "işlemek, çalışmak (makine)", "eser, yapıt", "işe yaramak"],
-            "examples": ["I have work to do. Yapacağım iş var.", "He works hard. Çok çalışır.", "The machine works. Makine çalışıyor.", "Shakespeare's works. Shakespeare'in eserleri."]
-        },
-        {
-            "word": "play",
-            "meanings": ["oynamak", "çalmak (enstrüman)", "oyun, piyes", "rol yapmak"],
-            "examples": ["Children play outside. Çocuklar dışarıda oynar.", "She plays piano. Piyano çalar.", "a theatre play bir tiyatro oyunu", "play a role bir rol oynamak"]
-        },
-        {
-            "word": "head",
-            "meanings": ["baş, kafa", "lider, başkan, reis", "başlık, baş kısım", "yönelmek, gitmek"],
-            "examples": ["He has a big head. Büyük bir kafası var.", "head of the department bölüm başkanı", "the head of the bed yatağın baş kısmı", "head towards home eve doğru yönelmek"]
-        },
-        {
-            "word": "break",
-            "meanings": ["kırmak", "ara vermek, mola", "bozmak, aksatmak", "kırılmak"],
-            "examples": ["Don't break the glass. Camı kırma.", "take a break mola vermek", "break the law kanunu çiğnemek", "The toy broke. Oyuncak kırıldı."]
-        },
-        {
-            "word": "draw",
-            "meanings": ["çizmek", "çekmek", "berabere kalmak (spor)", "çekmek, ilgi toplamak"],
-            "examples": ["Draw a picture. Bir resim çiz.", "Draw the curtain. Perdeyi çek.", "The match was a draw. Maç berabere bitti.", "draw attention dikkat çekmek"]
-        },
-        {
-            "word": "fall",
-            "meanings": ["düşmek", "sonbahar", "azalmak, düşüş göstermek", "olmak (belirli bir duruma)"],
-            "examples": ["Don't fall! Düşme!", "in the fall sonbaharda", "Prices fell. Fiyatlar düştü.", "fall asleep uykuya dalmak"]
-        },
-        {
-            "word": "show",
-            "meanings": ["göstermek", "gösteri, şov", "sergilemek", "belli etmek, belli olmak"],
-            "examples": ["Show me your ticket. Bana biletini göster.", "a TV show bir TV programı", "show one's work çalışmasını sergilemek", "Her feelings showed. Duyguları belli oldu."]
-        },
-        {
-            "word": "keep",
-            "meanings": ["tutmak, saklamak", "devam etmek", "beslemek (hayvan)", "korumak, muhafaza etmek"],
-            "examples": ["Keep the change. Üstü kalsın.", "Keep going! Devam et!", "keep a dog köpek beslemek", "Keep it safe. Onu güvende tut."]
-        },
-        {
-            "word": "stand",
-            "meanings": ["ayakta durmak", "kalkmak, ayağa kalkmak", "dayanmak, katlanmak", "stand, tezgah, durak"],
-            "examples": ["Stand up! Ayağa kalk!", "I can't stand it. Buna dayanamam.", "a market stand bir pazar tezgahı", "stand in line sırada beklemek"]
+            "meanings": ["koşmak", "işletmek, yönetmek", "çalışmak (makine)", "akmak (su)"],
+            "examples": ["He runs fast. Hızlı koşar.", "She runs a company. Bir şirket yönetiyor.", "run away kaçmak"]
         }
     ]
 }
