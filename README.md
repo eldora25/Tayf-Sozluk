@@ -5,11 +5,11 @@ Android için basit bir kelime öğrenme ve tekrar uygulaması.
 ## Özellikler
 
 - Kelime ekleme
-- Hazır İngilizce kelime paketleri
+- Hazır İngilizce kelime test paketleri
 - Günlük hedef takibi
 - Quiz modu
 - Yanlış yapılan kelimeleri listeleme
-- CSV, Excel ve Lingoes TXT içe aktarma
+- Uygun formatta CSV, JSON ve TXT içe aktarma
 - Text-to-Speech ile kelime seslendirme
 - GitHub Actions ile APK oluşturma
 
@@ -28,5 +28,8 @@ GitHub reposunda:
 word,meaning,example,library,level
 apple,elma,I eat an apple.,İngilizce A1,A1
 book,kitap,This is my book.,İngilizce A1,A1
+
+###### Güncellemeler
+
 Kelime düzenleme özelliği eklendi
 
