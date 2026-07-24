@@ -16,10 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.example.kelimehatirlatici.data.Word
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import org.json.JSONArray
-import java.io.InputStream
 
-// Paket veri sınıfı
 data class WordPackage(
     val fileName: String,
     val name: String,
@@ -29,7 +26,6 @@ data class WordPackage(
     val wordCount: Int
 )
 
-// Assets'teki paket dosyalarını oku
 fun loadPackagesFromAssets(context: Context): List<WordPackage> {
     val packages = mutableListOf<WordPackage>()
     try {
@@ -37,70 +33,81 @@ fun loadPackagesFromAssets(context: Context): List<WordPackage> {
         for (fileName in fileNames) {
             if (fileName.endsWith(".json")) {
                 try {
-                    val inputStream: InputStream = context.assets.open("packs/$fileName")
+                    val inputStream = context.assets.open("packs/$fileName")
                     val content = inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(content)
-
                     val wordsArray = json.getJSONArray("words")
-                    val wordCount = wordsArray.length()
-
                     packages.add(
                         WordPackage(
                             fileName = fileName,
                             name = json.getString("name"),
-                            description = json.getString("description"),
-                            languagePair = json.getString("languagePair"),
-                            level = json.getString("level"),
-                            wordCount = wordCount
+                            description = json.optString("description", ""),
+                            languagePair = json.optString("languagePair", ""),
+                            level = json.optString("level", "Genel"),
+                            wordCount = wordsArray.length()
                         )
                     )
-                } catch (e: Exception) {
-                    // Hatalı dosyayı atla
-                }
+                } catch (_: Exception) { }
             }
         }
-    } catch (e: Exception) {
-        // assets/packs klasörü yoksa hata verme
-    }
+    } catch (_: Exception) { }
     return packages
 }
 
-// Paketteki kelimeleri oku
 fun loadWordsFromPackage(context: Context, fileName: String): List<Word> {
     val words = mutableListOf<Word>()
     try {
-        val inputStream: InputStream = context.assets.open("packs/$fileName")
+        val inputStream = context.assets.open("packs/$fileName")
         val content = inputStream.bufferedReader().use { it.readText() }
         val json = JSONObject(content)
-
         val library = json.getString("name")
-        val level = json.getString("level")
+        val level = json.optString("level", "Genel")
         val wordsArray = json.getJSONArray("words")
 
         for (i in 0 until wordsArray.length()) {
             val wordJson = wordsArray.getJSONObject(i)
             val word = wordJson.getString("word")
-            val meaning = wordJson.getString("meaning")
-            val example = wordJson.optString("example", "")
 
-            val meanings = JSONArray(listOf(meaning))
-            val examples = if (example.isNotBlank()) JSONArray(listOf(example)) else JSONArray()
+            val meaning: String
+            val example: String
+
+            if (wordJson.has("meanings")) {
+                // ÇOKLU ANLAM FORMATI: ["anlam1", "anlam2"]
+                val meaningsArray = wordJson.getJSONArray("meanings")
+                val parts = mutableListOf<String>()
+                for (j in 0 until meaningsArray.length()) {
+                    parts.add(meaningsArray.getString(j))
+                }
+                meaning = parts.joinToString("|||")
+            } else {
+                // ESKİ FORMAT: "meaning": "..."
+                meaning = wordJson.optString("meaning", "")
+            }
+
+            if (wordJson.has("examples")) {
+                // ÇOKLU ÖRNEK FORMATI: ["cümle1", "cümle2"]
+                val examplesArray = wordJson.getJSONArray("examples")
+                val exParts = mutableListOf<String>()
+                for (j in 0 until examplesArray.length()) {
+                    exParts.add(examplesArray.getString(j))
+                }
+                example = exParts.joinToString("|||")
+            } else {
+                // ESKİ FORMAT: "example": "..."
+                example = wordJson.optString("example", "")
+            }
 
             words.add(
                 Word(
                     word = word,
                     meaning = meaning,
-                    meanings = meanings.toString(),
                     example = example,
-                    examples = examples.toString(),
                     library = library,
                     level = level
                 )
             )
         }
-    } catch (e: Exception) {
-        // Hata durumunda boş liste dön
-    }
+    } catch (_: Exception) { }
     return words
 }
 
@@ -117,7 +124,6 @@ fun PackagesScreen(
     var statusMessage by remember { mutableStateOf("") }
     var installProgress by remember { mutableStateOf("") }
 
-    // Paketleri yükle
     LaunchedEffect(Unit) {
         packages = loadPackagesFromAssets(context)
     }
@@ -125,9 +131,7 @@ fun PackagesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Hazır Paketler", fontWeight = FontWeight.Bold)
-                },
+                title = { Text("Hazır Paketler", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
@@ -142,19 +146,14 @@ fun PackagesScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)
         ) {
-            // Tüm Kütüphaneleri Yükle butonu
             Button(
                 onClick = {
                     coroutineScope.launch {
                         isLoading = true
                         statusMessage = "Tüm paketler yükleniyor..."
                         var totalImported = 0
-
                         for (pkg in packages) {
                             installProgress = "${pkg.name} yükleniyor..."
                             val words = loadWordsFromPackage(context, pkg.fileName)
@@ -163,7 +162,6 @@ fun PackagesScreen(
                                 totalImported++
                             }
                         }
-
                         installProgress = ""
                         statusMessage = "✅ Toplam $totalImported kelime yüklendi!"
                         isLoading = false
@@ -225,29 +223,23 @@ fun PackagesScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(packages) { pkg ->
-                        PackageCard(
-                            pkg = pkg,
-                            onInstall = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    installProgress = "${pkg.name} yükleniyor..."
-                                    val words = loadWordsFromPackage(context, pkg.fileName)
-                                    var imported = 0
-                                    for (word in words) {
-                                        repository.addWord(word)
-                                        imported++
-                                    }
-                                    installProgress = ""
-                                    statusMessage = "✅ $imported kelime yüklendi: ${pkg.name}"
-                                    isLoading = false
+                        PackageCard(pkg = pkg, onInstall = {
+                            coroutineScope.launch {
+                                isLoading = true
+                                installProgress = "${pkg.name} yükleniyor..."
+                                val words = loadWordsFromPackage(context, pkg.fileName)
+                                var imported = 0
+                                for (word in words) {
+                                    repository.addWord(word)
+                                    imported++
                                 }
-                            },
-                            isInstalling = isLoading
-                        )
+                                installProgress = ""
+                                statusMessage = "✅ $imported kelime yüklendi: ${pkg.name}"
+                                isLoading = false
+                            }
+                        }, isInstalling = isLoading)
                     }
                 }
             }
@@ -255,55 +247,6 @@ fun PackagesScreen(
     }
 }
 
-@Composable
-private fun PackageCard(
-    pkg: WordPackage,
-    onInstall: () -> Unit,
-    isInstalling: Boolean
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.LibraryBooks,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = pkg.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = pkg.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) // ESKİ (HATALI):
-// Chip(onClick = {}, label = { Text(pkg.languagePair) }, ...)
-// Chip(onClick = {}, label = { Text(pkg.level) }, ...)
-// Chip(onClick = {}, label = { Text("${pkg.wordCount} kelime") }, ...)
-
-// YENİ (DÜZGÜN):
 @Composable
 private fun PackageCard(
     pkg: WordPackage,
@@ -330,12 +273,11 @@ private fun PackageCard(
             Text(text = pkg.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // SORUNLU SATIRLAR - DÜZELTİLDİ: Chip -> OutlineButton+Text
+            // SORUN DÜZELTİLDİ: Chip → SuggestionChip
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // SuggestionChip kullan (Material3'te Chip private)
                 SuggestionChip(
                     onClick = {},
                     label = { Text(pkg.languagePair, style = MaterialTheme.typography.labelSmall) },
@@ -354,20 +296,6 @@ private fun PackageCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onInstall,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isInstalling
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Bu Paketi Yükle")
-            }
-        }
-    }
-}
-            Spacer(modifier = Modifier.height(12.dp))
-
             Button(
                 onClick = onInstall,
                 modifier = Modifier.fillMaxWidth(),
