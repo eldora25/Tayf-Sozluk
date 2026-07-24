@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +22,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.kelimehatirlatici.data.AppDatabase
 import com.example.kelimehatirlatici.data.Word
@@ -29,12 +32,19 @@ import com.example.kelimehatirlatici.ui.theme.KelimeHatirlaticiTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 
-// DataStore
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+// ========== DATASTORE ==========
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_settings")
+
+// Anahtarlar
 private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+private val SELECTED_LIBRARY_KEY = stringPreferencesKey("selected_library")
+private val SELECTED_LEVEL_KEY = stringPreferencesKey("selected_level")
+private val LEARNED_WORDS_KEY = stringSetPreferencesKey("learned_words")
+private val WRONG_WORDS_KEY = stringSetPreferencesKey("wrong_words")
+private val REPEAT_WORDS_KEY = stringSetPreferencesKey("repeat_words")
 
+// Dark mode flow
 fun Context.getDarkModeFlow(): Flow<Boolean> {
     return dataStore.data.map { preferences ->
         preferences[DARK_MODE_KEY] ?: false
@@ -44,6 +54,88 @@ fun Context.getDarkModeFlow(): Flow<Boolean> {
 suspend fun Context.setDarkModeEnabled(enabled: Boolean) {
     dataStore.edit { preferences ->
         preferences[DARK_MODE_KEY] = enabled
+    }
+}
+
+// Seçili kütüphane
+suspend fun Context.setSelectedLibrary(library: String) {
+    dataStore.edit { preferences ->
+        preferences[SELECTED_LIBRARY_KEY] = library
+    }
+}
+
+fun Context.getSelectedLibraryFlow(): Flow<String> {
+    return dataStore.data.map { preferences ->
+        preferences[SELECTED_LIBRARY_KEY] ?: "Tümü"
+    }
+}
+
+// Seçili seviye
+suspend fun Context.setSelectedLevel(level: String) {
+    dataStore.edit { preferences ->
+        preferences[SELECTED_LEVEL_KEY] = level
+    }
+}
+
+fun Context.getSelectedLevelFlow(): Flow<String> {
+    return dataStore.data.map { preferences ->
+        preferences[SELECTED_LEVEL_KEY] ?: "Tümü"
+    }
+}
+
+// Öğrenilen kelimeler
+suspend fun Context.addLearnedWord(word: String) {
+    dataStore.edit { preferences ->
+        val current = preferences[LEARNED_WORDS_KEY] ?: emptySet()
+        preferences[LEARNED_WORDS_KEY] = current + word
+    }
+}
+
+fun Context.getLearnedWordsFlow(): Flow<Set<String>> {
+    return dataStore.data.map { preferences ->
+        preferences[LEARNED_WORDS_KEY] ?: emptySet()
+    }
+}
+
+// Yanlış kelimeler
+suspend fun Context.addWrongWord(word: String) {
+    dataStore.edit { preferences ->
+        val current = preferences[WRONG_WORDS_KEY] ?: emptySet()
+        preferences[WRONG_WORDS_KEY] = current + word
+    }
+}
+
+suspend fun Context.removeWrongWord(word: String) {
+    dataStore.edit { preferences ->
+        val current = preferences[WRONG_WORDS_KEY] ?: emptySet()
+        preferences[WRONG_WORDS_KEY] = current - word
+    }
+}
+
+fun Context.getWrongWordsFlow(): Flow<Set<String>> {
+    return dataStore.data.map { preferences ->
+        preferences[WRONG_WORDS_KEY] ?: emptySet()
+    }
+}
+
+// Tekrar kelimeleri
+suspend fun Context.addRepeatWord(word: String) {
+    dataStore.edit { preferences ->
+        val current = preferences[REPEAT_WORDS_KEY] ?: emptySet()
+        preferences[REPEAT_WORDS_KEY] = current + word
+    }
+}
+
+suspend fun Context.removeRepeatWord(word: String) {
+    dataStore.edit { preferences ->
+        val current = preferences[REPEAT_WORDS_KEY] ?: emptySet()
+        preferences[REPEAT_WORDS_KEY] = current - word
+    }
+}
+
+fun Context.getRepeatWordsFlow(): Flow<Set<String>> {
+    return dataStore.data.map { preferences ->
+        preferences[REPEAT_WORDS_KEY] ?: emptySet()
     }
 }
 
@@ -87,21 +179,37 @@ private fun MainApp(
     isDarkMode: Boolean,
     onToggleDarkMode: (Boolean) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     val scope = rememberCoroutineScope()
 
-    var currentScreen by remember { mutableStateOf("main") }
-    var words by remember { mutableStateOf<List<Word>>(emptyList()) }
-    var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
-    var selectedLibrary by remember { mutableStateOf("Tümü") }
-    var selectedLevel by remember { mutableStateOf("Tümü") }
-    var currentWordIndex by remember { mutableIntStateOf(0) }
-    var currentWord by remember { mutableStateOf<Word?>(null) }
-    var showMeanings by remember { mutableStateOf(false) }
+    // ========== KALICI STATE (DataStore'dan okunur, rotation'a dayanıklı) ==========
+    var currentScreen by rememberSaveable { mutableStateOf("main") }
+    var selectedLibrary by rememberSaveable { mutableStateOf("Tümü") }
+    var selectedLevel by rememberSaveable { mutableStateOf("Tümü") }
+    var currentWordIndex by rememberSaveable { mutableIntStateOf(0) }
+    var showMeanings by rememberSaveable { mutableStateOf(false) }
 
-    // Verileri yükle
-    LaunchedEffect(currentScreen) {
+    // DataStore'dan seçili kütüphane ve seviyeyi al
+    LaunchedEffect(Unit) {
+        context.getSelectedLibraryFlow().collect { lib ->
+            selectedLibrary = lib
+        }
+    }
+    LaunchedEffect(Unit) {
+        context.getSelectedLevelFlow().collect { level ->
+            selectedLevel = level
+        }
+    }
+
+    // Veritabanından kelimeleri yükle
+    var words by remember { mutableStateOf<List<Word>>(emptyList()) }
+    var currentWord by remember { mutableStateOf<Word?>(null) }
+    var libraries by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Kelimeleri yükle - her ekran değişiminde veya library/level değişiminde
+    LaunchedEffect(currentScreen, selectedLibrary, selectedLevel) {
         if (currentScreen == "main" || currentScreen == "library") {
             words = repository.getWordsByLibraryAndLevel(
                 if (selectedLibrary == "Tümü") "" else selectedLibrary,
@@ -111,6 +219,13 @@ private fun MainApp(
             if (words.isNotEmpty() && currentWord == null) {
                 currentWordIndex = 0
                 currentWord = words.first()
+            } else if (words.isNotEmpty() && currentWordIndex < words.size) {
+                currentWord = words[currentWordIndex]
+            } else if (words.isNotEmpty()) {
+                currentWordIndex = 0
+                currentWord = words.first()
+            } else {
+                currentWord = null
             }
         }
     }
@@ -123,9 +238,7 @@ private fun MainApp(
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 // Drawer Header
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Icon(
                         imageVector = Icons.Default.MenuBook,
                         contentDescription = null,
@@ -148,19 +261,12 @@ private fun MainApp(
 
                 HorizontalDivider()
 
-                // Drawer Menü Öğeleri
                 val drawerItems = listOf(
                     "Ana Sayfa" to Icons.Default.Home,
-                    "Kelime Ekle" to Icons.Default.Add,
-                    "Kelime Listesi" to Icons.Default.List,
                     "Kütüphane Seç" to Icons.Default.LibraryBooks,
                     "Seviye Seç" to Icons.Default.Speed,
-                    "Günlük Hedef" to Icons.Default.TrackChanges,
-                    "İstatistikler" to Icons.Default.BarChart,
-                    "Quiz" to Icons.Default.Quiz,
                     "İçe Aktar" to Icons.Default.FileUpload,
                     "Paketler" to Icons.Default.Inventory2,
-                    "Yanlış Kelimeler" to Icons.Default.Error,
                     "Ayarlar" to Icons.Default.Settings
                 )
 
@@ -185,7 +291,6 @@ private fun MainApp(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Alt bilgi
                 HorizontalDivider()
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 8.dp),
@@ -220,16 +325,22 @@ private fun MainApp(
                         currentWord = word
                     },
                     onToggleMeanings = { showMeanings = !showMeanings },
-                    onScreenChange = { currentScreen = it }
+                    onScreenChange = { currentScreen = it },
+                    context = context
                 )
 
                 "library" -> LibrariesScreen(
                     libraries = libraries,
                     repository = repository,
+                    currentLibrary = selectedLibrary,
                     onLibrarySelect = { lib ->
                         selectedLibrary = lib
                         currentWord = null
                         currentWordIndex = 0
+                        // DataStore'a kaydet (kalıcı)
+                        coroutineScope.launch {
+                            context.setSelectedLibrary(lib)
+                        }
                         currentScreen = "main"
                     },
                     onBack = { currentScreen = "main" }
@@ -281,8 +392,11 @@ private fun MainContent(
     onDrawerOpen: () -> Unit,
     onWordChange: (Int, Word?) -> Unit,
     onToggleMeanings: () -> Unit,
-    onScreenChange: (String) -> Unit
+    onScreenChange: (String) -> Unit,
+    context: Context
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -380,17 +494,11 @@ private fun MainContent(
                                 HorizontalDivider()
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Çoklu anlamları göster (||| ile ayrılmış)
+                                // ========== ÇOKLU ANLAMLAR ==========
                                 val meaningsList = if (word.meanings.contains("|||")) {
                                     word.meanings.split("|||")
                                 } else {
-                                    try {
-                                        JSONArray(word.meanings).let { arr ->
-                                            (0 until arr.length()).map { arr.getString(it) }
-                                        }
-                                    } catch (_: Exception) {
-                                        listOf(word.meaning)
-                                    }
+                                    listOf(word.meaning)
                                 }
 
                                 Text(
@@ -401,26 +509,23 @@ private fun MainContent(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 meaningsList.forEachIndexed { index, meaning ->
-                                    Text(
-                                        text = "${index + 1}. $meaning",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(vertical = 2.dp)
-                                    )
+                                    val cleanMeaning = meaning.trim().removePrefix("[").removeSuffix("]")
+                                    if (cleanMeaning.isNotBlank()) {
+                                        Text(
+                                            text = "${index + 1}. $cleanMeaning",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 2.dp)
+                                        )
+                                    }
                                 }
 
-                                // Çoklu örnek cümleleri göster
+                                // ========== ÇOKLU ÖRNEK CÜMLELER ==========
                                 if (word.example.isNotBlank()) {
                                     val examplesList = if (word.example.contains("|||")) {
                                         word.example.split("|||")
                                     } else {
-                                        try {
-                                            JSONArray(word.examples).let { arr ->
-                                                (0 until arr.length()).map { arr.getString(it) }
-                                            }
-                                        } catch (_: Exception) {
-                                            listOf(word.example)
-                                        }
+                                        listOf(word.example)
                                     }
 
                                     if (examplesList.isNotEmpty()) {
@@ -468,7 +573,7 @@ private fun MainContent(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Butonlar
+                    // ========== BUTONLAR ==========
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -524,18 +629,58 @@ private fun MainContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "${currentWordIndex + 1} / ${words.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Biliyorum butonu - kelimeyi öğrenilenlere ekle
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    context.addLearnedWord(word.word)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Biliyorum", maxLines = 1)
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Bilmiyorum butonu - yanlış kelimelere ekle
+                        OutlinedButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    context.addWrongWord(word.word)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Bilmiyorum", maxLines = 1)
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Ayarlar
                         IconButton(onClick = { onScreenChange("settings") }) {
                             Icon(Icons.Default.Settings, contentDescription = "Ayarlar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // İlerleme
+                    Text(
+                        text = "${currentWordIndex + 1} / ${words.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     // Kelime arama
-                    var searchQuery by remember { mutableStateOf("") }
+                    var searchQuery by rememberSaveable { mutableStateOf("") }
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { query ->
@@ -573,6 +718,7 @@ private fun MainContent(
 private fun LibrariesScreen(
     libraries: List<String>,
     repository: WordRepository,
+    currentLibrary: String,
     onLibrarySelect: (String) -> Unit,
     onBack: () -> Unit
 ) {
@@ -596,26 +742,83 @@ private fun LibrariesScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)
         ) {
+            // "Tümü" seçeneği
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                onClick = { onLibrarySelect("Tümü") },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (currentLibrary == "Tümü")
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AllInclusive,
+                        contentDescription = null,
+                        tint = if (currentLibrary == "Tümü") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Tümü",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (currentLibrary == "Tümü") FontWeight.Bold else FontWeight.Normal
+                        )
+                        Text(
+                            text = "Tüm kelimeler",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (currentLibrary == "Tümü") {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
+            }
+
             items(libraries) { library ->
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    onClick = { onLibrarySelect(library) }
+                    onClick = { onLibrarySelect(library) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (currentLibrary == library)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.LibraryBooks, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.LibraryBooks,
+                            contentDescription = null,
+                            tint = if (currentLibrary == library) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = library, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = library,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (currentLibrary == library) FontWeight.Bold else FontWeight.Normal
+                            )
                             Text(
                                 text = "${repository.getWordCountByLibrary(library)} kelime",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (currentLibrary == library) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        } else {
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
