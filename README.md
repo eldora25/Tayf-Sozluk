@@ -14,7 +14,7 @@ Android için basit bir kelime öğrenme ve tekrar uygulaması.
 - GitHub Actions ile APK oluşturma
 
 ## APK Oluşturma
-APK ismini dinamiktir buil no ya göre versiyon no alır ve apk ismine eklenir 
+APK ismi dinamiktir build no ya göre versiyon no alır ve apk ismine eklenir 
 
 GitHub reposunda:
 
