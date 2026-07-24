@@ -1,5 +1,6 @@
 package com.example.kelimehatirlatici
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,15 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.launch
 
-// DataStore anahtarları
 val QUIZ_QUESTION_COUNT_KEY = intPreferencesKey("quiz_question_count")
 val QUIZ_SHUFFLE_KEY = booleanPreferencesKey("quiz_shuffle")
 val MEMORIZATION_THRESHOLD_KEY = intPreferencesKey("memorization_threshold")
@@ -30,15 +30,16 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSave: () -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
 
-    // DataStore'dan ayarları oku
-    var questionCount by remember { mutableIntStateOf(10) }
+    // DataStore'dan kalıcı ayarları oku
+    var questionCount by remember { mutableStateOf(10) }
     var shuffleQuestions by remember { mutableStateOf(false) }
-    var memorizationThreshold by remember { mutableIntStateOf(3) }
+    var memorizationThreshold by remember { mutableStateOf(3) }
 
     LaunchedEffect(Unit) {
+        // DataStore'dan oku - bunlar zaten MainActivity'de tanımlandı
         context.dataStore.data.collect { prefs ->
             questionCount = prefs[QUIZ_QUESTION_COUNT_KEY] ?: 10
             shuffleQuestions = prefs[QUIZ_SHUFFLE_KEY] ?: false
@@ -49,9 +50,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Ayarlar", fontWeight = FontWeight.Bold)
-                },
+                title = { Text("Ayarlar", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
@@ -72,7 +71,7 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // === QUIZ AYARLARI ===
+            // QUIZ AYARLARI
             Text(
                 text = "Quiz Ayarları",
                 style = MaterialTheme.typography.titleMedium,
@@ -81,12 +80,10 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            // Quiz soru sayısı
+            // Soru sayısı
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -95,42 +92,16 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Quiz,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Default.Quiz, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Quiz soru sayısı",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text("Quiz soru sayısı", style = MaterialTheme.typography.bodyLarge)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    if (questionCount > 5) {
-                                        questionCount--
-                                    }
-                                }
-                            ) {
+                            IconButton(onClick = { if (questionCount > 5) questionCount-- }) {
                                 Icon(Icons.Default.Remove, contentDescription = "Azalt")
                             }
-                            Text(
-                                text = "$questionCount",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (questionCount < 50) {
-                                        questionCount++
-                                    }
-                                }
-                            ) {
+                            Text("$questionCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp))
+                            IconButton(onClick = { if (questionCount < 50) questionCount++ }) {
                                 Icon(Icons.Default.Add, contentDescription = "Arttır")
                             }
                         }
@@ -143,34 +114,19 @@ fun SettingsScreen(
             // Sorular karışık mı?
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Shuffle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Sorular karışık mı?",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        Text("Sorular karışık mı?", style = MaterialTheme.typography.bodyLarge)
                     }
-                    Switch(
-                        checked = shuffleQuestions,
-                        onCheckedChange = { shuffleQuestions = it }
-                    )
+                    Switch(checked = shuffleQuestions, onCheckedChange = { shuffleQuestions = it })
                 }
             }
 
@@ -179,9 +135,7 @@ fun SettingsScreen(
             // Ezberleme eşik değeri
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -190,49 +144,20 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Ezberleme eşik değeri",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text("Ezberleme eşik değeri", style = MaterialTheme.typography.bodyLarge)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    if (memorizationThreshold > 1) {
-                                        memorizationThreshold--
-                                    }
-                                }
-                            ) {
+                            IconButton(onClick = { if (memorizationThreshold > 1) memorizationThreshold-- }) {
                                 Icon(Icons.Default.Remove, contentDescription = "Azalt")
                             }
-                            Text(
-                                text = "$memorizationThreshold",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (memorizationThreshold < 10) {
-                                        memorizationThreshold++
-                                    }
-                                }
-                            ) {
+                            Text("$memorizationThreshold", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp))
+                            IconButton(onClick = { if (memorizationThreshold < 10) memorizationThreshold++ }) {
                                 Icon(Icons.Default.Add, contentDescription = "Arttır")
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
                         text = "Bu kadar doğru cevap verince kelime ezberlenmiş sayılır",
                         style = MaterialTheme.typography.bodySmall,
@@ -243,7 +168,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // === GÖRÜNÜM ===
+            // GÖRÜNÜM
             Text(
                 text = "Görünüm",
                 style = MaterialTheme.typography.titleMedium,
@@ -255,14 +180,10 @@ fun SettingsScreen(
             // Gece Modu
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -275,10 +196,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(
-                                text = "Gece Modu",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text("Gece Modu", style = MaterialTheme.typography.bodyLarge)
                             Text(
                                 text = if (isDarkMode) "Koyu tema aktif" else "Açık tema aktif",
                                 style = MaterialTheme.typography.bodySmall,
@@ -286,21 +204,17 @@ fun SettingsScreen(
                             )
                         }
                     }
-                    Switch(
-                        checked = isDarkMode,
-                        onCheckedChange = { onToggleDarkMode(it) }
-                    )
+                    Switch(checked = isDarkMode, onCheckedChange = { onToggleDarkMode(it) })
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // === BUTONLAR ===
+            // BUTONLAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Kaydet
                 Button(
                     onClick = {
                         coroutineScope.launch {
@@ -319,11 +233,7 @@ fun SettingsScreen(
                     Text("Kaydet")
                 }
 
-                // Geri
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
+                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.ArrowBack, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Geri")
