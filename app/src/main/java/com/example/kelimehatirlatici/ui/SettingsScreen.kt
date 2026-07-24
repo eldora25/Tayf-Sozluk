@@ -1,6 +1,5 @@
 package com.example.kelimehatirlatici
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,13 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.launch
 
 val QUIZ_QUESTION_COUNT_KEY = intPreferencesKey("quiz_question_count")
-val QUIZ_SHUFFLE_KEY = booleanPreferencesKey("quiz_shuffle")
+val QUIZ_SHUFFLE_KEY = androidx.datastore.preferences.core.booleanPreferencesKey("quiz_shuffle")
 val MEMORIZATION_THRESHOLD_KEY = intPreferencesKey("memorization_threshold")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,13 +31,11 @@ fun SettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    // DataStore'dan kalıcı ayarları oku
     var questionCount by remember { mutableStateOf(10) }
     var shuffleQuestions by remember { mutableStateOf(false) }
     var memorizationThreshold by remember { mutableStateOf(3) }
 
     LaunchedEffect(Unit) {
-        // DataStore'dan oku - bunlar zaten MainActivity'de tanımlandı
         context.dataStore.data.collect { prefs ->
             questionCount = prefs[QUIZ_QUESTION_COUNT_KEY] ?: 10
             shuffleQuestions = prefs[QUIZ_SHUFFLE_KEY] ?: false
@@ -71,7 +67,6 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // QUIZ AYARLARI
             Text(
                 text = "Quiz Ayarları",
                 style = MaterialTheme.typography.titleMedium,
@@ -80,7 +75,6 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            // Soru sayısı
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -111,7 +105,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Sorular karışık mı?
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -132,7 +125,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Ezberleme eşik değeri
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -168,7 +160,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // GÖRÜNÜM
             Text(
                 text = "Görünüm",
                 style = MaterialTheme.typography.titleMedium,
@@ -177,7 +168,6 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            // Gece Modu
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -210,7 +200,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // BUTONLAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
