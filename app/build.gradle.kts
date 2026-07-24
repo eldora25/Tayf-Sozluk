@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.kelimehatirlatici"
-        minSdk = 24
+        minSdk = 26           // ← SADECE BURASI DEĞİŞTİ: 24 → 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
