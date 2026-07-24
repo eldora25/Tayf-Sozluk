@@ -56,7 +56,14 @@ object ExcelImportHelper {
                 try {
                     val word = parseLine(line.trim(), libraryName)
                     if (word != null) {
-                        repository.addWord(word)
+                        // SADECE 59. SATIR DEĞİŞECEK:
+// Eski hali:
+// repository.addWord(word)
+//
+// Yeni hali - coroutine scope içine al:
+kotlinx.coroutines.GlobalScope.launch {
+    repository.addWord(word)
+}
                         imported++
                         if (imported % 100 == 0) {
                             Log.d(TAG, "$imported kelime eklendi...")
