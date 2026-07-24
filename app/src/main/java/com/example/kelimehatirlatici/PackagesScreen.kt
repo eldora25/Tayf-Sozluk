@@ -298,42 +298,74 @@ private fun PackageCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
+            ) // ESKİ (HATALI):
+// Chip(onClick = {}, label = { Text(pkg.languagePair) }, ...)
+// Chip(onClick = {}, label = { Text(pkg.level) }, ...)
+// Chip(onClick = {}, label = { Text("${pkg.wordCount} kelime") }, ...)
+
+// YENİ (DÜZGÜN):
+@Composable
+private fun PackageCard(
+    pkg: WordPackage,
+    onInstall: () -> Unit,
+    isInstalling: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LibraryBooks,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = pkg.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = pkg.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // SORUNLU SATIRLAR - DÜZELTİLDİ: Chip -> OutlineButton+Text
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Chip(
+                // SuggestionChip kullan (Material3'te Chip private)
+                SuggestionChip(
                     onClick = {},
-                    label = { Text(pkg.languagePair) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Translate,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    label = { Text(pkg.languagePair, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
-                Chip(
+                SuggestionChip(
                     onClick = {},
-                    label = { Text(pkg.level) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Speed,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    label = { Text(pkg.level, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
-                Chip(
+                SuggestionChip(
                     onClick = {},
-                    label = { Text("${pkg.wordCount} kelime") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.TextSnippet,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    label = { Text("${pkg.wordCount} kelime", style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(Icons.Default.TextSnippet, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onInstall,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isInstalling
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Bu Paketi Yükle")
+            }
+        }
+    }
+}
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
